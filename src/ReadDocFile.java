@@ -12,6 +12,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Created by bearg on 1/27/2017.
@@ -38,36 +40,53 @@ public class ReadDocFile {
         HSSFFont font = template.createFont();
         font.setBold(true);
 
-        String formattedText = "";
-        HSSFRichTextString rts;
+        String plaintextParagraph = firstParagraph.text();
+        HSSFRichTextString rts = new HSSFRichTextString(plaintextParagraph);
+
+        // we will bold a range of characters that need to be bolded in the paragraph
+        // with each run through the loop
 
         for (int i = 0; i < firstParagraph.numCharacterRuns(); i++) {
 
             // get character runs one at a time
             CharacterRun characterRun = firstParagraph.getCharacterRun(i);
-            String characterRunString = characterRun.text();
-            rts = new HSSFRichTextString(characterRunString);
 
 
             // if the run of characters is bolded
             if (characterRun.isBold()) {
 
-                // apply bold font to that string
-                rts.applyFont(font);
+                // find that substring in the original
+                String textToMatch = characterRun.text();
+
+                // TODO add check here for multiple occurences of same bolded string
+
+                /*Pattern phrase = Pattern.compile(textToMatch);
+                Matcher match = phrase.matcher(plaintextParagraph);
+                while (match.find()) {
+                    System.out.println("Start: "+ match.start());
+                    System.out.println("End: "+ match.end());
+
+                }*/
+                int startBold = plaintextParagraph.indexOf(textToMatch);
+                int endBold = startBold + textToMatch.length();
+
+                /*System.out.println(startBold + "-" +
+                        endBold + ": " + textToMatch);*/
+
+
+                // apply bold font to that substring
+                rts.applyFont(startBold, endBold, font);
             }
-
-
-            formattedText += rts.toString();
 
 
         }
 
-
-        cell.setCellValue(formattedText);
+        cell.setCellValue(rts);
 
         template.write(stream);
         stream.close();
         template.close();
+
 
     }
 
@@ -84,6 +103,7 @@ public class ReadDocFile {
            /* CharacterRun characterRun = paragraph.getCharacterRun(2);
             System.out.println(characterRun.text());
             System.out.println(characterRun.isBold());*/
+
 
            return firstParagraph;
 
