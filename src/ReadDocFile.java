@@ -1,10 +1,11 @@
-import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.hssf.usermodel.*;
 import org.apache.poi.hwpf.HWPFDocument;
 import org.apache.poi.hwpf.extractor.WordExtractor;
+import org.apache.poi.ss.usermodel.Row;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 
 /**
@@ -12,29 +13,48 @@ import java.io.IOException;
  */
 public class ReadDocFile {
 
-    private static final String PATH_PREFIX = "C:\\Users\\bearg\\OneDrive\\Documents\\transcriptions\\";
+    private static final String WORD_DOC_PATH_PREFIX = "C:\\Users\\bearg\\OneDrive\\Documents\\transcriptions\\";
+    private static final String TEMPLATE_PATH_PREFIX = "C:\\Users\\bearg\\OneDrive\\Documents\\transcript_docs\\";
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
 
-        getDocumentText();
+        String firstParagraph = getDocumentText();
+        HSSFWorkbook template = readFile(TEMPLATE_PATH_PREFIX + "G-1613 AFP Patient Immersion Capture Sheet 1-11-17.xls");
+        FileOutputStream stream = new FileOutputStream(TEMPLATE_PATH_PREFIX + "G-1613 AFP Patient Immersion Capture Sheet 1-11-17.xls");
+        HSSFSheet sheet = template.getSheetAt(0);
+
+        // takes a 0-based param. if we want row n in the spreadsheet, this param should be n-1
+        HSSFRow row = sheet.getRow(3);
+
+        // getCell takes a 0-based param called cellnum that represents a column.
+        // e.g. column A is 0, B is 1, etc.
+        HSSFCell cell = row.getCell(3, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK); // returning null for some reason
+        cell.setCellValue(firstParagraph);
+
+        HSSFFont font = template.createFont();
+        font.setBold(true);
+        HSSFRichTextString paragraphWithCorrectBolding = new HSSFRichTextString(firstParagraph);
+        paragraphWithCorrectBolding.applyFont(0, 10, font);
+        cell.setCellValue(paragraphWithCorrectBolding);
+
+        template.write(stream);
+        stream.close();
+        template.close();
+
     }
 
-    private static void getDocumentText(){
+    private static String getDocumentText() throws IOException {
         final File file;
         final WordExtractor extractor;
         FileInputStream fis = null;
 
         try {
-            file = new File(PATH_PREFIX + "31 G-1613 AFP Patient Immersion - Phase 2 122016 12pm BC.doc");
+            file = new File(WORD_DOC_PATH_PREFIX + "31 G-1613 AFP Patient Immersion - Phase 2 122016 12pm BC.doc");
             fis = new FileInputStream(file);
             HWPFDocument document = new HWPFDocument(fis);
             extractor = new WordExtractor(document);
             String[] paragraphs = extractor.getParagraphText();
-            for (int i = 0; i < paragraphs.length; i++) {
-                if (paragraphs[i] != null) {
-                    System.out.println(paragraphs[i]);
-                }
-            }
+            return paragraphs[0];
 
 
         } catch (java.io.IOException e) {
@@ -42,20 +62,24 @@ public class ReadDocFile {
         }
 
         finally {
-            if (fis != null) {
-                try {
-                    fis.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
+            fis.close();
         }
+
+        return null;
+    }
+
+    private static void pasteTextIntoSpreadsheet(){
 
     }
 
     private static HSSFWorkbook readFile(String filename) throws IOException {
         FileInputStream fis = new FileInputStream(filename);
-        return null;
+        try {
+            return new HSSFWorkbook(fis);
+        }
+        finally {
+            fis.close();
+        }
 
     }
 }
