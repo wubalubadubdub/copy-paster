@@ -1,6 +1,5 @@
 import org.apache.poi.hssf.usermodel.*;
 import org.apache.poi.hwpf.HWPFDocument;
-import org.apache.poi.hwpf.extractor.WordExtractor;
 import org.apache.poi.hwpf.usermodel.CharacterRun;
 import org.apache.poi.hwpf.usermodel.Paragraph;
 import org.apache.poi.hwpf.usermodel.Range;
@@ -10,10 +9,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.lang.reflect.Array;
-import java.util.ArrayList;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Created by bearg on 1/27/2017.
@@ -22,26 +19,65 @@ public class ReadDocFile {
 
     private static final String WORD_DOC_PATH_PREFIX = "C:\\Users\\bearg\\OneDrive\\Documents\\transcriptions\\";
     private static final String TEMPLATE_PATH_PREFIX = "C:\\Users\\bearg\\OneDrive\\Documents\\transcript_docs\\";
+    private static String wordDocumentName;
+    private static HWPFDocument wordDocument;
 
     public static void main(String[] args) throws IOException {
 
-        Paragraph firstParagraph = getDocumentText();
-        HSSFWorkbook template = readFile(TEMPLATE_PATH_PREFIX + "G-1613 AFP Patient Immersion Capture Sheet 1-11-17.xls");
-        FileOutputStream stream = new FileOutputStream(TEMPLATE_PATH_PREFIX + "G-1613 AFP Patient Immersion Capture Sheet 1-11-17.xls");
-        HSSFSheet sheet = template.getSheetAt(0);
+        if (args.length < 2) {
+            System.out.println("Must supply word filename as an argument and row # (0-based) from the Excel sheet" +
+                    "that text should be pasted into");
+            System.exit(0);
+        }
 
-        // takes a 0-based param. if we want row n in the spreadsheet, this param should be n-1
-        HSSFRow row = sheet.getRow(3);
+        try {
+            int rowNumber = Integer.parseInt(args[1]);
+            wordDocumentName = args[0];
+            File wordDocFile = new File(WORD_DOC_PATH_PREFIX + wordDocumentName);
+            FileInputStream fis = new FileInputStream(wordDocFile);
+            wordDocument = new HWPFDocument(fis);
+
+            final String excelDocumentName = TEMPLATE_PATH_PREFIX + wordDocumentName.replace(".doc", ".xls");
+            HSSFWorkbook template = readFile(excelDocumentName);
+            FileOutputStream stream = new FileOutputStream(excelDocumentName);
+            HSSFSheet sheet = getSheet(template);
+
+        }
+
+        catch (IOException e){
+            e.printStackTrace();
+        }
+
+
+
+    }
+
+    private static void paragraphLoop() throws IOException {
+        int paragraphNumber = 0;
+        Paragraph currentParagraph;
+        while (getParagraph(paragraphNumber) != null) {
+            currentParagraph = getParagraph(paragraphNumber);
+            String plainTextParagraph = currentParagraph.text();
+            HSSFRichTextString rts = new HSSFRichTextString(plainTextParagraph);
+
+
+        }
+
+    }
+
+    private static HSSFFont getBoldFont(HSSFWorkbook template) {
+        HSSFFont boldFont = template.createFont();
+        boldFont.setBold(true);
+        return boldFont;
+
+    }
+
 
         // getCell takes a 0-based param called cellnum that represents a column.
         // e.g. column A is 0, B is 1, etc.
         HSSFCell cell = row.getCell(3, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
 
-        HSSFFont font = template.createFont();
-        font.setBold(true);
 
-        String plaintextParagraph = firstParagraph.text();
-        HSSFRichTextString rts = new HSSFRichTextString(plaintextParagraph);
 
         // we will bold a range of characters that need to be bolded in the paragraph
         // with each run through the loop
@@ -60,18 +96,8 @@ public class ReadDocFile {
 
                 // TODO add check here for multiple occurences of same bolded string
 
-                /*Pattern phrase = Pattern.compile(textToMatch);
-                Matcher match = phrase.matcher(plaintextParagraph);
-                while (match.find()) {
-                    System.out.println("Start: "+ match.start());
-                    System.out.println("End: "+ match.end());
-
-                }*/
                 int startBold = plaintextParagraph.indexOf(textToMatch);
                 int endBold = startBold + textToMatch.length();
-
-                /*System.out.println(startBold + "-" +
-                        endBold + ": " + textToMatch);*/
 
 
                 // apply bold font to that substring
@@ -90,36 +116,37 @@ public class ReadDocFile {
 
     }
 
-    private static Paragraph getDocumentText() throws IOException {
-        final File file;
-        FileInputStream fis = null;
 
-        try {
-            file = new File(WORD_DOC_PATH_PREFIX + "31 G-1613 AFP Patient Immersion - Phase 2 122016 12pm BC.doc");
-            fis = new FileInputStream(file);
-            HWPFDocument document = new HWPFDocument(fis);
-            Range range = document.getRange();
-            Paragraph firstParagraph = range.getParagraph(0);
-           /* CharacterRun characterRun = paragraph.getCharacterRun(2);
-            System.out.println(characterRun.text());
-            System.out.println(characterRun.isBold());*/
+    // get a paragraph from the word document
+    private static Paragraph getParagraph(int paragraphNumber) throws IOException {
 
+        Range range = wordDocument.getRange();
 
-           return firstParagraph;
-
-
-        } catch (java.io.IOException e) {
-            e.printStackTrace();
+        if (paragraphNumber >= range.numParagraphs()) {
+            return null;
         }
+        return range.getParagraph(paragraphNumber);
 
-        finally {
-            fis.close();
-        }
-
-        return null;
     }
 
-    private static void pasteTextIntoSpreadsheet(){
+    private static HSSFSheet getSheet(HSSFWorkbook template) {
+        return template.getSheetAt(0);
+
+    }
+
+    private static HSSFCell getCell(HSSFSheet sheet, int rowNumber, int columnNumber) {
+        HSSFRow row = sheet.getRow(rowNumber);
+        return row.getCell(columnNumber);
+
+
+    }
+
+    private static int getColumnNumber(String plainTextParagraph) {
+
+    }
+
+    private static void pasteTextIntoCell(HSSFCell cell, HSSFRichTextString rts){
+        cell.setCellValue(rts);
 
     }
 
@@ -131,6 +158,39 @@ public class ReadDocFile {
         finally {
             fis.close();
         }
+
+    }
+
+    private static void associateColumnLettersWithNumbers() {
+        Map<String, Integer> lettersToNumbers = new HashMap<>();
+        final String alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+        for (int i = 0; i < 6; i++) {
+
+            if (i==0) { // single-letter column
+                for (int j = 0; j < 26; j++) {
+                    lettersToNumbers.put(String.valueOf(alphabet.charAt(j)), j);
+
+                }
+            }
+
+            else {
+                for (int j = 0; j < 26; j++) {
+                    lettersToNumbers.put(
+                            String.valueOf(alphabet.charAt(i-1)) + String.valueOf(alphabet.charAt(j)), 26*i+j);
+
+                    // when i = 1, column #s 26-51, or (26*1)+j
+                    // i = 2, column #s 52-77, or (26*2)+j
+                    // etc
+
+                }
+
+            }
+
+        }
+
+
+
 
     }
 }
