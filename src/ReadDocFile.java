@@ -81,8 +81,9 @@ public class ReadDocFile {
 
             System.out.println(plainTextParagraph);
 
-            HSSFRichTextString rts = getBoldParagraph(currentParagraph);
+
             int columnNumber = getColumnNumberFromParagraph(plainTextParagraph);
+            HSSFRichTextString rts = getBoldParagraph(currentParagraph);
             HSSFCell currentCell = getCell(sheet, rowNumber, columnNumber);
             pasteTextIntoCell(currentCell, rts);
             loopCounter++;
@@ -116,7 +117,15 @@ public class ReadDocFile {
     }
 
     private static HSSFRichTextString getBoldParagraph(Paragraph currentParagraph) {
-        HSSFRichTextString rts = new HSSFRichTextString(currentParagraph.text());
+
+        if (currentParagraph.text().equals("\r")) {
+            return new HSSFRichTextString(currentParagraph.text());
+        }
+
+        String plainTextWithoutIdentifier = stripIdentifier(currentParagraph.text());
+        HSSFRichTextString rts = new HSSFRichTextString(plainTextWithoutIdentifier);
+
+
         for (int i=0; i < currentParagraph.numCharacterRuns(); i++) {
 
             // get character runs one at a time
@@ -126,11 +135,11 @@ public class ReadDocFile {
             if (characterRun.isBold()) {
 
                 // find that substring in the original
-                String textToMatch = characterRun.text();
+                String textToMatch = characterRun.text().trim();
 
                 // TODO add check here for multiple occurences of same bolded string
 
-                int startBold = currentParagraph.text().indexOf(textToMatch);
+                int startBold = plainTextWithoutIdentifier.indexOf(textToMatch);
                 int endBold = startBold + textToMatch.length();
 
 
@@ -140,6 +149,16 @@ public class ReadDocFile {
         }
 
         return rts;
+
+    }
+
+    private static String stripIdentifier(String plainText) {
+        if (plainText.charAt(1) == ':') { // single-letter identifier; three chars to strip (e.g. D:\s)
+           return plainText.substring(3);
+        }
+
+        // two-letter identifier; four chars to strip (e.g. AB:\s)
+        return plainText.substring(4);
 
     }
 
