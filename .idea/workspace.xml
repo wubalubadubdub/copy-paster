@@ -33,45 +33,11 @@
       <file leaf-file-name="ReadDocFile.java" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/ReadDocFile.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="150">
-              <caret line="137" column="64" lean-forward="true" selection-start-line="137" selection-start-column="64" selection-end-line="137" selection-end-column="64" />
+            <state relative-caret-position="54">
+              <caret line="113" column="31" lean-forward="false" selection-start-line="113" selection-start-column="31" selection-end-line="113" selection-end-column="31" />
               <folding>
                 <element signature="imports" expanded="true" />
               </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="Range.class" pinned="false" current-in-tab="false">
-        <entry file="jar://$PROJECT_DIR$/lib/poi-scratchpad-3.15.jar!/org/apache/poi/hwpf/usermodel/Range.class">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="113">
-              <caret line="111" column="0" lean-forward="false" selection-start-line="111" selection-start-column="0" selection-end-line="111" selection-end-column="0" />
-              <folding>
-                <element signature="e#4016#4017#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="HSSFRichTextString.class" pinned="false" current-in-tab="false">
-        <entry file="jar://$PROJECT_DIR$/lib/poi-3.15.jar!/org/apache/poi/hssf/usermodel/HSSFRichTextString.class">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="113">
-              <caret line="127" column="0" lean-forward="false" selection-start-line="127" selection-start-column="0" selection-end-line="127" selection-end-column="0" />
-              <folding>
-                <element signature="e#4136#4137#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="HSSFCell.class" pinned="false" current-in-tab="false">
-        <entry file="jar://$PROJECT_DIR$/lib/poi-3.15.jar!/org/apache/poi/hssf/usermodel/HSSFCell.class">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="126">
-              <caret line="363" column="0" lean-forward="false" selection-start-line="363" selection-start-column="0" selection-end-line="363" selection-end-column="0" />
-              <folding />
             </state>
           </provider>
         </entry>
@@ -469,14 +435,6 @@
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" type="java-line">
-          <url>file://$PROJECT_DIR$/src/ReadDocFile.java</url>
-          <line>141</line>
-          <properties />
-          <option name="timeStamp" value="7" />
-        </line-breakpoint>
-      </breakpoints>
       <option name="time" value="8" />
     </breakpoint-manager>
     <watches-manager />
@@ -574,8 +532,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/ReadDocFile.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="150">
-          <caret line="137" column="64" lean-forward="true" selection-start-line="137" selection-start-column="64" selection-end-line="137" selection-end-column="64" />
+        <state relative-caret-position="54">
+          <caret line="113" column="31" lean-forward="false" selection-start-line="113" selection-start-column="31" selection-end-line="113" selection-end-column="31" />
           <folding>
             <element signature="imports" expanded="true" />
           </folding>

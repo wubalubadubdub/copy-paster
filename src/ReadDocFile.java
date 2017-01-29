@@ -109,10 +109,20 @@ public class ReadDocFile {
         return lettersToNumbers.get(columnIdentifier);
     }
 
-    private static HSSFFont getBoldFont() {
+    private static HSSFFont getBoldText() {
         HSSFFont boldFont = template.createFont();
         boldFont.setBold(true);
         return boldFont;
+
+    }
+
+    private static HSSFCellStyle getCellStyle() {
+        HSSFCellStyle cellStyle = template.createCellStyle();
+        HSSFFont cellFont = template.createFont();
+        cellFont.setFontName("Calibri");
+        cellFont.setFontHeightInPoints((short) 10);
+        cellStyle.setFont(cellFont);
+        return cellStyle;
 
     }
 
@@ -131,6 +141,10 @@ public class ReadDocFile {
             // get character runs one at a time
             CharacterRun characterRun = currentParagraph.getCharacterRun(i);
 
+            // TODO use these to detect the font name and size automatically
+            final String fontName = characterRun.getFontName();
+            final int fontSize = characterRun.getFontSize();
+
             // if the run of characters is bolded
             if (characterRun.isBold()) {
 
@@ -144,7 +158,8 @@ public class ReadDocFile {
 
 
                 // apply bold font to that substring
-                rts.applyFont(startBold, endBold, getBoldFont());
+                rts.applyFont(startBold, endBold, getBoldText());
+
             }
         }
 
@@ -166,6 +181,8 @@ public class ReadDocFile {
 
 
     private static void pasteTextIntoCell(HSSFCell cell, HSSFRichTextString rts){
+
+        cell.setCellStyle(getCellStyle());
         cell.setCellValue(rts);
 
     }
