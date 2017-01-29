@@ -64,15 +64,28 @@ public class ReadDocFile {
 
     private static void paragraphLoop() throws IOException {
         int paragraphNumber = 0;
+        int loopCounter = 0;
         Paragraph currentParagraph;
-        while (getParagraph(paragraphNumber) != null) {
-            currentParagraph = getParagraph(paragraphNumber);
+        while (true) {
+            currentParagraph = getCurrentParagraph(paragraphNumber);
+            if (currentParagraph == null) {
+                break;
+            }
+            paragraphNumber++;
             String plainTextParagraph = currentParagraph.text();
+
+            if (plainTextParagraph.equals("\r")) {
+                continue;
+            }
+
+            System.out.println(plainTextParagraph);
+
             HSSFRichTextString rts = getBoldParagraph(currentParagraph);
             int columnNumber = getColumnNumberFromParagraph(plainTextParagraph);
             HSSFCell currentCell = getCell(sheet, rowNumber, columnNumber);
             pasteTextIntoCell(currentCell, rts);
-
+            loopCounter++;
+            System.out.println("Text pasted into cell " + loopCounter + " times");
             template.write(stream);
 
 
@@ -81,6 +94,7 @@ public class ReadDocFile {
     }
 
     private static int getColumnNumberFromParagraph(String plainTextParagraph) {
+
         // get first two characters from the paragraph, i.e. the column identifier
         String columnIdentifier = plainTextParagraph.substring(0, 2);
 
@@ -89,6 +103,7 @@ public class ReadDocFile {
             columnIdentifier = String.valueOf(columnIdentifier.charAt(0));
         }
 
+        // System.out.println(columnIdentifier + " mapped to " + lettersToNumbers.get(columnIdentifier));
         return lettersToNumbers.get(columnIdentifier);
     }
 
@@ -137,11 +152,14 @@ public class ReadDocFile {
 
 
     // get a paragraph from the word document
-    private static Paragraph getParagraph(int paragraphNumber) throws IOException {
+    private static Paragraph getCurrentParagraph(int paragraphNumber) throws IOException {
 
         Range range = wordDocument.getRange();
+       // System.out.println("Number of paragraphs is " + range.numParagraphs());
+      //  System.out.println("Currently on paragraph number " + paragraphNumber);
 
-        if (paragraphNumber >= range.numParagraphs()) {
+        int lastParagraphNumber = range.numParagraphs() - 1;
+        if (paragraphNumber > lastParagraphNumber) {
             return null;
         }
         return range.getParagraph(paragraphNumber);
@@ -154,6 +172,7 @@ public class ReadDocFile {
     }
 
     private static HSSFCell getCell(HSSFSheet sheet, int rowNumber, int columnNumber) {
+        System.out.println("Getting cell at row " + rowNumber + " , column " + columnNumber);
         HSSFRow row = sheet.getRow(rowNumber);
         return row.getCell(columnNumber, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
 
