@@ -49,6 +49,7 @@ public class ReadDocFile {
 
             paragraphLoop();
 
+            template.write(stream);
             stream.close();
             template.close();
 
@@ -86,7 +87,7 @@ public class ReadDocFile {
             pasteTextIntoCell(currentCell, rts);
             loopCounter++;
             System.out.println("Text pasted into cell " + loopCounter + " times");
-            template.write(stream);
+
 
 
         }
