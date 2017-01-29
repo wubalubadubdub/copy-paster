@@ -10,7 +10,6 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Created by bearg on 1/27/2017.
@@ -18,9 +17,14 @@ import java.util.Map;
 public class ReadDocFile {
 
     private static final String WORD_DOC_PATH_PREFIX = "C:\\Users\\bearg\\OneDrive\\Documents\\transcriptions\\";
-    private static final String TEMPLATE_PATH_PREFIX = "C:\\Users\\bearg\\OneDrive\\Documents\\transcript_docs\\";
+    private static final String TEMPLATE_PATH_PREFIX = "C:\\Users\\bearg\\OneDrive\\Documents\\transcriptions\\";
     private static String wordDocumentName;
     private static HWPFDocument wordDocument;
+    private static HashMap<String, Integer> lettersToNumbers;
+    private static HSSFWorkbook template;
+    private static FileOutputStream stream;
+    private static HSSFSheet sheet;
+    private static int rowNumber;
 
     public static void main(String[] args) throws IOException {
 
@@ -31,16 +35,22 @@ public class ReadDocFile {
         }
 
         try {
-            int rowNumber = Integer.parseInt(args[1]);
+            rowNumber = Integer.parseInt(args[1]);
             wordDocumentName = args[0];
             File wordDocFile = new File(WORD_DOC_PATH_PREFIX + wordDocumentName);
             FileInputStream fis = new FileInputStream(wordDocFile);
             wordDocument = new HWPFDocument(fis);
+            associateColumnLettersWithNumbers();
 
             final String excelDocumentName = TEMPLATE_PATH_PREFIX + wordDocumentName.replace(".doc", ".xls");
-            HSSFWorkbook template = readFile(excelDocumentName);
-            FileOutputStream stream = new FileOutputStream(excelDocumentName);
-            HSSFSheet sheet = getSheet(template);
+            template = readFile(excelDocumentName);
+            stream = new FileOutputStream(excelDocumentName);
+            sheet = getSheet();
+
+            paragraphLoop();
+
+            stream.close();
+            template.close();
 
         }
 
@@ -58,35 +68,43 @@ public class ReadDocFile {
         while (getParagraph(paragraphNumber) != null) {
             currentParagraph = getParagraph(paragraphNumber);
             String plainTextParagraph = currentParagraph.text();
-            HSSFRichTextString rts = new HSSFRichTextString(plainTextParagraph);
+            HSSFRichTextString rts = getBoldParagraph(currentParagraph);
+            int columnNumber = getColumnNumberFromParagraph(plainTextParagraph);
+            HSSFCell currentCell = getCell(sheet, rowNumber, columnNumber);
+            pasteTextIntoCell(currentCell, rts);
+
+            template.write(stream);
 
 
         }
 
     }
 
-    private static HSSFFont getBoldFont(HSSFWorkbook template) {
+    private static int getColumnNumberFromParagraph(String plainTextParagraph) {
+        // get first two characters from the paragraph, i.e. the column identifier
+        String columnIdentifier = plainTextParagraph.substring(0, 2);
+
+        // if 2nd char is ":", we have a single-letter column identifier
+        if (columnIdentifier.charAt(1) == ':') {
+            columnIdentifier = String.valueOf(columnIdentifier.charAt(0));
+        }
+
+        return lettersToNumbers.get(columnIdentifier);
+    }
+
+    private static HSSFFont getBoldFont() {
         HSSFFont boldFont = template.createFont();
         boldFont.setBold(true);
         return boldFont;
 
     }
 
-
-        // getCell takes a 0-based param called cellnum that represents a column.
-        // e.g. column A is 0, B is 1, etc.
-        HSSFCell cell = row.getCell(3, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-
-
-
-        // we will bold a range of characters that need to be bolded in the paragraph
-        // with each run through the loop
-
-        for (int i = 0; i < firstParagraph.numCharacterRuns(); i++) {
+    private static HSSFRichTextString getBoldParagraph(Paragraph currentParagraph) {
+        HSSFRichTextString rts = new HSSFRichTextString(currentParagraph.text());
+        for (int i=0; i < currentParagraph.numCharacterRuns(); i++) {
 
             // get character runs one at a time
-            CharacterRun characterRun = firstParagraph.getCharacterRun(i);
-
+            CharacterRun characterRun = currentParagraph.getCharacterRun(i);
 
             // if the run of characters is bolded
             if (characterRun.isBold()) {
@@ -96,23 +114,24 @@ public class ReadDocFile {
 
                 // TODO add check here for multiple occurences of same bolded string
 
-                int startBold = plaintextParagraph.indexOf(textToMatch);
+                int startBold = currentParagraph.text().indexOf(textToMatch);
                 int endBold = startBold + textToMatch.length();
 
 
                 // apply bold font to that substring
-                rts.applyFont(startBold, endBold, font);
+                rts.applyFont(startBold, endBold, getBoldFont());
             }
-
-
         }
 
+        return rts;
+
+    }
+
+
+
+
+    private static void pasteTextIntoCell(HSSFCell cell, HSSFRichTextString rts){
         cell.setCellValue(rts);
-
-        template.write(stream);
-        stream.close();
-        template.close();
-
 
     }
 
@@ -129,26 +148,18 @@ public class ReadDocFile {
 
     }
 
-    private static HSSFSheet getSheet(HSSFWorkbook template) {
+    private static HSSFSheet getSheet() {
         return template.getSheetAt(0);
 
     }
 
     private static HSSFCell getCell(HSSFSheet sheet, int rowNumber, int columnNumber) {
         HSSFRow row = sheet.getRow(rowNumber);
-        return row.getCell(columnNumber);
+        return row.getCell(columnNumber, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
 
 
     }
 
-    private static int getColumnNumber(String plainTextParagraph) {
-
-    }
-
-    private static void pasteTextIntoCell(HSSFCell cell, HSSFRichTextString rts){
-        cell.setCellValue(rts);
-
-    }
 
     private static HSSFWorkbook readFile(String filename) throws IOException {
         FileInputStream fis = new FileInputStream(filename);
@@ -162,7 +173,7 @@ public class ReadDocFile {
     }
 
     private static void associateColumnLettersWithNumbers() {
-        Map<String, Integer> lettersToNumbers = new HashMap<>();
+        lettersToNumbers = new HashMap<>();
         final String alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
         for (int i = 0; i < 6; i++) {
