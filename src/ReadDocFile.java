@@ -110,19 +110,13 @@ public class ReadDocFile {
     }
 
     private static HSSFFont getBoldText() {
+        HSSFCellStyle cellStyle = template.createCellStyle();
         HSSFFont boldFont = template.createFont();
         boldFont.setBold(true);
+        boldFont.setFontName("Calibri");
+        boldFont.setFontHeightInPoints((short) 11);
+        cellStyle.setFont(boldFont);
         return boldFont;
-
-    }
-
-    private static HSSFCellStyle getCellStyle() {
-        HSSFCellStyle cellStyle = template.createCellStyle();
-        HSSFFont cellFont = template.createFont();
-        cellFont.setFontName("Calibri");
-        cellFont.setFontHeightInPoints((short) 10);
-        cellStyle.setFont(cellFont);
-        return cellStyle;
 
     }
 
@@ -182,7 +176,6 @@ public class ReadDocFile {
 
     private static void pasteTextIntoCell(HSSFCell cell, HSSFRichTextString rts){
 
-        cell.setCellStyle(getCellStyle());
         cell.setCellValue(rts);
 
     }
