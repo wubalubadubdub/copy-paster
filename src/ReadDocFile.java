@@ -18,15 +18,16 @@ public class ReadDocFile {
 
     private static final String WORD_DOC_PATH_PREFIX = "C:\\Users\\bearg\\OneDrive\\Documents\\transcriptions\\";
     private static final String TEMPLATE_PATH_PREFIX = "C:\\Users\\bearg\\OneDrive\\Documents\\transcriptions\\";
+    private static final String ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     private static String wordDocumentName;
     private static HWPFDocument wordDocument;
     private static HashMap<String, Integer> lettersToNumbers;
     private static HSSFWorkbook template;
     private static FileOutputStream stream;
-    private static HSSFSheet sheet;
     private static int rowNumber;
     private static String fontName;
     private static int fontSize;
+
 
 
     public static void main(String[] args) throws IOException {
@@ -53,7 +54,7 @@ public class ReadDocFile {
             final String excelDocumentName = TEMPLATE_PATH_PREFIX + wordDocumentName.replace(".doc", ".xls");
             template = readFile(excelDocumentName);
             stream = new FileOutputStream(excelDocumentName);
-            sheet = getSheet();
+            //sheet = getSheet();
 
             paragraphLoop();
 
@@ -93,7 +94,11 @@ public class ReadDocFile {
 
             int columnNumber = getColumnNumberFromParagraph(plainTextParagraph);
             HSSFRichTextString rts = getBoldParagraph(currentParagraph);
-            HSSFCell currentCell = getCell(sheet, rowNumber, columnNumber);
+
+            // must call before stripping identifier
+            HSSFSheet currentSheet = template.getSheetAt(getSheetNumberFromParagraph(plainTextParagraph));
+
+            HSSFCell currentCell = getCell(currentSheet, rowNumber, columnNumber);
             pasteTextIntoCell(currentCell, rts);
             loopCounter++;
             System.out.println("Text pasted into cell " + loopCounter + " times");
@@ -106,16 +111,51 @@ public class ReadDocFile {
 
     private static int getColumnNumberFromParagraph(String plainTextParagraph) {
 
-        // get first two characters from the paragraph, i.e. the column identifier
-        String columnIdentifier = plainTextParagraph.substring(0, 2);
+        // get first four characters from the paragraph, i.e. the column identifier and colon,
+        // e.g. B: or D2: or AC: or AD2:
+        String columnIdentifier = plainTextParagraph.substring(0, 4);
 
-        // if 2nd char is ":", we have a single-letter column identifier
-        if (columnIdentifier.charAt(1) == ':') {
-            columnIdentifier = String.valueOf(columnIdentifier.charAt(0));
+        if (columnIdentifier.charAt(1) == ':') { // e.g. A:
+            columnIdentifier = ""+ columnIdentifier.charAt(0);
+        }
+
+        else if (columnIdentifier.charAt(2) == ':') { // e.g. A1: or AB:
+            String determinant = "" + columnIdentifier.charAt(1);
+
+            if (!ALPHABET.contains(determinant)) { // this is the A1: case
+                columnIdentifier = ""+ columnIdentifier.charAt(0);
+            }
+
+            else { // this is the AB: case
+                columnIdentifier = columnIdentifier.substring(0, 2);
+            }
+        }
+
+        else if (columnIdentifier.charAt(3) == ':') { // e.g. AD2:
+            columnIdentifier = columnIdentifier.substring(0, 2);
         }
 
         // System.out.println(columnIdentifier + " mapped to " + lettersToNumbers.get(columnIdentifier));
         return lettersToNumbers.get(columnIdentifier);
+    }
+
+    private static int getSheetNumberFromParagraph(String plainTextParagraph) {
+        String sheetIdentifier = plainTextParagraph.substring(0, 4);
+        if (sheetIdentifier.charAt(1) == ':') { // we should be pasting into sheet 0
+            return 0;
+        }
+        if (sheetIdentifier.charAt(2) == ':') { // e.g. D2: or BB:
+            // we should return 0 if charAt(1), aka determinant, is a letter (something like BB:)
+            // and return determinant if determinant is a number (something like D2:)
+            String determinant = "" + sheetIdentifier.charAt(1);
+            return ALPHABET.contains(determinant)? 0:Integer.valueOf(determinant);
+        }
+        if (sheetIdentifier.charAt(3) == ':') { // e.g. AA1:
+            return Integer.parseInt("" + sheetIdentifier.charAt(2));
+        }
+
+        throw new IllegalStateException("Could not get sheet number from paragraph. None of the available options" +
+                "were matched");
     }
 
     private static HSSFFont getBoldText() {
@@ -161,10 +201,7 @@ public class ReadDocFile {
 
             }
         }
-
-
         return rts;
-
     }
 
     private static String stripIdentifier(String plainText) {
@@ -172,8 +209,15 @@ public class ReadDocFile {
            return plainText.substring(3);
         }
 
-        // two-letter identifier; four chars to strip (e.g. AB:\s)
-        return plainText.substring(4);
+        if (plainText.charAt(2) == ':') { // e.g. A1:\s or AB:\s
+            return plainText.substring(4);
+        }
+
+        if (plainText.charAt(3) == ':') { // e.g. BC2:\s
+            return plainText.substring(5);
+        }
+
+       throw new IllegalStateException("Could not strip identifier. None of the options were matched.");
 
     }
 
@@ -202,14 +246,15 @@ public class ReadDocFile {
 
     }
 
-    private static HSSFSheet getSheet() {
-        return template.getSheetAt(0);
-
-    }
 
     private static HSSFCell getCell(HSSFSheet sheet, int rowNumber, int columnNumber) {
         System.out.println("Getting cell at row " + rowNumber + " , column " + columnNumber);
         HSSFRow row = sheet.getRow(rowNumber);
+        if (row == null) {
+            throw new IllegalStateException("Trying to get the row in this sheet returned null." +
+                    "Is the entire sheet blank? If so, type some text into any cell in that row and " +
+                    "run the program again.");
+        }
         return row.getCell(columnNumber, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
 
 
@@ -229,13 +274,13 @@ public class ReadDocFile {
 
     private static void associateColumnLettersWithNumbers() {
         lettersToNumbers = new HashMap<>();
-        final String alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
 
         for (int i = 0; i < 6; i++) {
 
             if (i==0) { // single-letter column
                 for (int j = 0; j < 26; j++) {
-                    lettersToNumbers.put(String.valueOf(alphabet.charAt(j)), j);
+                    lettersToNumbers.put(String.valueOf(ALPHABET.charAt(j)), j);
 
                 }
             }
@@ -243,7 +288,7 @@ public class ReadDocFile {
             else {
                 for (int j = 0; j < 26; j++) {
                     lettersToNumbers.put(
-                            String.valueOf(alphabet.charAt(i-1)) + String.valueOf(alphabet.charAt(j)), 26*i+j);
+                            String.valueOf(ALPHABET.charAt(i-1)) + String.valueOf(ALPHABET.charAt(j)), 26*i+j);
 
                     // when i = 1, column #s 26-51, or (26*1)+j
                     // i = 2, column #s 52-77, or (26*2)+j
