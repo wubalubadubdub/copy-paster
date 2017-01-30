@@ -10,6 +10,8 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Created by bearg on 1/27/2017.
@@ -27,6 +29,7 @@ public class ReadDocFile {
     private static int rowNumber;
     private static String fontName;
     private static int fontSize;
+    private static Set<Integer> sheetNumbersUsed;
 
 
 
@@ -54,9 +57,9 @@ public class ReadDocFile {
             final String excelDocumentName = TEMPLATE_PATH_PREFIX + wordDocumentName.replace(".doc", ".xls");
             template = readFile(excelDocumentName);
             stream = new FileOutputStream(excelDocumentName);
-            //sheet = getSheet();
 
             paragraphLoop();
+            putXsInBlankCells();
 
             template.write(stream);
             stream.close();
@@ -77,6 +80,8 @@ public class ReadDocFile {
         int paragraphNumber = 0;
         int loopCounter = 0;
         Paragraph currentParagraph;
+        sheetNumbersUsed = new HashSet<>();
+
         while (true) {
             currentParagraph = getCurrentParagraph(paragraphNumber);
             if (currentParagraph == null) {
@@ -95,8 +100,11 @@ public class ReadDocFile {
             int columnNumber = getColumnNumberFromParagraph(plainTextParagraph);
             HSSFRichTextString rts = getBoldParagraph(currentParagraph);
 
+            int sheetNumber = getSheetNumberFromParagraph(plainTextParagraph);
+            sheetNumbersUsed.add(sheetNumber);
+
             // must call before stripping identifier
-            HSSFSheet currentSheet = template.getSheetAt(getSheetNumberFromParagraph(plainTextParagraph));
+            HSSFSheet currentSheet = template.getSheetAt(sheetNumber);
 
             HSSFCell currentCell = getCell(currentSheet, rowNumber, columnNumber);
             pasteTextIntoCell(currentCell, rts);
@@ -135,7 +143,6 @@ public class ReadDocFile {
             columnIdentifier = columnIdentifier.substring(0, 2);
         }
 
-        // System.out.println(columnIdentifier + " mapped to " + lettersToNumbers.get(columnIdentifier));
         return lettersToNumbers.get(columnIdentifier);
     }
 
@@ -222,11 +229,48 @@ public class ReadDocFile {
     }
 
 
-
-
     private static void pasteTextIntoCell(HSSFCell cell, HSSFRichTextString rts){
 
         cell.setCellValue(rts);
+
+    }
+
+    private static int getLastFilledColumnNumber(HSSFSheet currentSheet) {
+
+        // want to put Xs in cell range from first column, 0, in rowNumber until the cell directly
+        // above is blank, but only if those cells are blank after pasting in text of all paragraphs
+
+        // get the row above the one we're pasting text into
+        HSSFRow row = currentSheet.getRow(rowNumber-1);
+        int endColumnNumber = 0;
+        while (true) { // check cell contents of row above column number
+            if (row.getCell(endColumnNumber) == null) { // the cell above is empty
+                break;
+            }
+
+            endColumnNumber++;
+        }
+
+        return endColumnNumber; // actually gives us 1 more than the column number we want to stop at,
+        // but this will be dealt with in the loop
+
+    }
+
+    // needs to be called after methods that place text into cells
+    private static void putXsInBlankCells() {
+
+        for (Integer sheetNumber : sheetNumbersUsed) {
+            HSSFSheet currentSheet = template.getSheetAt(sheetNumber);
+            HSSFRow row = currentSheet.getRow(rowNumber);
+            for (int column = 0; column < getLastFilledColumnNumber(currentSheet); column++) {
+                HSSFCell cell = row.getCell(column);
+                if (cell.getStringCellValue().equals("")) { // if the cell is empty
+                    cell.setCellValue("X");
+                }
+                
+            }
+
+        }
 
     }
 
@@ -235,8 +279,6 @@ public class ReadDocFile {
     private static Paragraph getCurrentParagraph(int paragraphNumber) throws IOException {
 
         Range range = wordDocument.getRange();
-       // System.out.println("Number of paragraphs is " + range.numParagraphs());
-      //  System.out.println("Currently on paragraph number " + paragraphNumber);
 
         int lastParagraphNumber = range.numParagraphs() - 1;
         if (paragraphNumber > lastParagraphNumber) {
