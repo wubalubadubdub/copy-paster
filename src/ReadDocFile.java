@@ -25,6 +25,9 @@ public class ReadDocFile {
     private static FileOutputStream stream;
     private static HSSFSheet sheet;
     private static int rowNumber;
+    private static String fontName;
+    private static int fontSize;
+
 
     public static void main(String[] args) throws IOException {
 
@@ -40,6 +43,11 @@ public class ReadDocFile {
             File wordDocFile = new File(WORD_DOC_PATH_PREFIX + wordDocumentName);
             FileInputStream fis = new FileInputStream(wordDocFile);
             wordDocument = new HWPFDocument(fis);
+
+            // not sure yet why fontSize needs to be divided by 2, but the font size was being detected as 22 when
+            // it should've been 11
+            fontSize = (wordDocument.getRange().getParagraph(0).getCharacterRun(0).getFontSize()) / 2;
+            fontName =  wordDocument.getRange().getParagraph(0).getCharacterRun(0).getFontName();
             associateColumnLettersWithNumbers();
 
             final String excelDocumentName = TEMPLATE_PATH_PREFIX + wordDocumentName.replace(".doc", ".xls");
@@ -52,6 +60,7 @@ public class ReadDocFile {
             template.write(stream);
             stream.close();
             template.close();
+
 
         }
 
@@ -113,8 +122,8 @@ public class ReadDocFile {
         HSSFCellStyle cellStyle = template.createCellStyle();
         HSSFFont boldFont = template.createFont();
         boldFont.setBold(true);
-        boldFont.setFontName("Calibri");
-        boldFont.setFontHeightInPoints((short) 11);
+        boldFont.setFontName(fontName);
+        boldFont.setFontHeightInPoints((short) fontSize);
         cellStyle.setFont(boldFont);
         return boldFont;
 
@@ -135,10 +144,6 @@ public class ReadDocFile {
             // get character runs one at a time
             CharacterRun characterRun = currentParagraph.getCharacterRun(i);
 
-            // TODO use these to detect the font name and size automatically
-            final String fontName = characterRun.getFontName();
-            final int fontSize = characterRun.getFontSize();
-
             // if the run of characters is bolded
             if (characterRun.isBold()) {
 
@@ -156,6 +161,7 @@ public class ReadDocFile {
 
             }
         }
+
 
         return rts;
 
@@ -248,9 +254,6 @@ public class ReadDocFile {
             }
 
         }
-
-
-
 
     }
 }
