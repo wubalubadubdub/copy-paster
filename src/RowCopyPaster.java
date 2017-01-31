@@ -208,10 +208,13 @@ public class RowCopyPaster {
         // above is blank, but only if those cells are blank after pasting in text of all paragraphs
 
         // get the row above the one we're pasting text into
-        HSSFRow row = currentSheet.getRow(DocAnalyzer.rowNumber - 1);
+        int rowIndex = DocAnalyzer.rowNumber - 2;
+        HSSFRow row = currentSheet.getRow(rowIndex);
         int endColumnNumber = 0;
         while (true) { // check cell contents of row above column number
-            if (row.getCell(endColumnNumber) == null) { // the cell above is empty
+            // check if the cell above is empty or null
+            if (row.getCell(endColumnNumber) == null)
+            {
                 break;
             }
 
@@ -229,8 +232,9 @@ public class RowCopyPaster {
         for (Integer sheetNumber : sheetNumbersUsed) {
             HSSFSheet currentSheet = template.getSheetAt(sheetNumber);
             HSSFRow row = currentSheet.getRow(DocAnalyzer.rowNumber);
-            for (int column = 0; column < getLastFilledColumnNumber(currentSheet); column++) {
-                HSSFCell cell = row.getCell(column);
+            int endColumnNumber = getLastFilledColumnNumber(currentSheet);
+            for (int column = 0; column < endColumnNumber; column++) {
+                HSSFCell cell = row.getCell(column, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                 if (cell.getStringCellValue().equals("")) { // if the cell is empty
                     cell.setCellValue("X");
                     setCellStyle(cell);
