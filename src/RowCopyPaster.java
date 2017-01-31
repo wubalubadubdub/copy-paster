@@ -1,8 +1,13 @@
 import org.apache.poi.hssf.usermodel.*;
+import org.apache.poi.hssf.util.HSSFColor;
 import org.apache.poi.hwpf.usermodel.CharacterRun;
 import org.apache.poi.hwpf.usermodel.Paragraph;
 import org.apache.poi.hwpf.usermodel.Range;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.HorizontalAlignment;
 import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.VerticalAlignment;
+
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -184,7 +189,17 @@ public class RowCopyPaster {
     private static void pasteTextIntoCell(HSSFCell cell, HSSFRichTextString rts){
 
         cell.setCellValue(rts);
+        setCellStyle(cell);
+    }
 
+    private static void setCellStyle(HSSFCell cell) {
+
+        CellStyle style = template.createCellStyle();
+        style.setVerticalAlignment(VerticalAlignment.TOP);
+        style.setAlignment(HorizontalAlignment.LEFT);
+        style.setWrapText(true);
+        style.setFillForegroundColor(HSSFColor.WHITE.index);
+        cell.setCellStyle(style);
     }
 
     private static int getLastFilledColumnNumber(HSSFSheet currentSheet) {
@@ -218,6 +233,7 @@ public class RowCopyPaster {
                 HSSFCell cell = row.getCell(column);
                 if (cell.getStringCellValue().equals("")) { // if the cell is empty
                     cell.setCellValue("X");
+                    setCellStyle(cell);
                 }
                 
             }
