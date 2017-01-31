@@ -1,80 +1,55 @@
 import org.apache.poi.hssf.usermodel.*;
-import org.apache.poi.hwpf.HWPFDocument;
 import org.apache.poi.hwpf.usermodel.CharacterRun;
 import org.apache.poi.hwpf.usermodel.Paragraph;
 import org.apache.poi.hwpf.usermodel.Range;
 import org.apache.poi.ss.usermodel.Row;
-
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Created by bearg on 1/27/2017.
  */
-public class ReadDocFile {
+public class RowCopyPaster {
 
-    private static final String WORD_DOC_PATH_PREFIX = "C:\\Users\\bearg\\OneDrive\\Documents\\transcriptions\\";
-    private static final String TEMPLATE_PATH_PREFIX = "C:\\Users\\bearg\\OneDrive\\Documents\\transcriptions\\";
     private static final String ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    private static String wordDocumentName;
-    private static HWPFDocument wordDocument;
+    private static final String SHEET_REGEX = "[A-Z]+[0-9]+\\(([0-9])\\).*";
+    private static final String IDENTIFIER_REGEX = "[A-Z]+[0-9]+\\([0-9]\\):";
     private static HashMap<String, Integer> lettersToNumbers;
     private static HSSFWorkbook template;
-    private static FileOutputStream stream;
-    private static int rowNumber;
-    private static String fontName;
-    private static int fontSize;
+    private static FileOutputStream outputStream;
     private static Set<Integer> sheetNumbersUsed;
 
+   static void run()
 
+    {
+        associateColumnLettersWithNumbers();
 
-    public static void main(String[] args) throws IOException {
-
-        if (args.length < 2) {
-            System.out.println("Must supply word filename as an argument and row # (0-based) from the Excel sheet" +
-                    "that text should be pasted into");
-            System.exit(0);
-        }
-
+        final String excelDocumentName = DocAnalyzer.PATH_PREFIX + DocAnalyzer.wordDocumentName.replace(".doc", ".xls");
         try {
-            rowNumber = Integer.parseInt(args[1]);
-            wordDocumentName = args[0];
-            File wordDocFile = new File(WORD_DOC_PATH_PREFIX + wordDocumentName);
-            FileInputStream fis = new FileInputStream(wordDocFile);
-            wordDocument = new HWPFDocument(fis);
-
-            // not sure yet why fontSize needs to be divided by 2, but the font size was being detected as 22 when
-            // it should've been 11
-            fontSize = (wordDocument.getRange().getParagraph(0).getCharacterRun(0).getFontSize()) / 2;
-            fontName =  wordDocument.getRange().getParagraph(0).getCharacterRun(0).getFontName();
-            associateColumnLettersWithNumbers();
-
-            final String excelDocumentName = TEMPLATE_PATH_PREFIX + wordDocumentName.replace(".doc", ".xls");
             template = readFile(excelDocumentName);
-            stream = new FileOutputStream(excelDocumentName);
-
+            outputStream = new FileOutputStream(excelDocumentName);
             paragraphLoop();
             putXsInBlankCells();
+            tearDown();
 
-            template.write(stream);
-            stream.close();
-            template.close();
-
-
-        }
-
-        catch (IOException e){
+        } catch (IOException e) {
             e.printStackTrace();
         }
 
-
-
     }
+
+    private static void tearDown() throws IOException {
+        template.write(outputStream);
+        outputStream.close();
+        template.close();
+    }
+
 
     private static void paragraphLoop() throws IOException {
         int paragraphNumber = 0;
@@ -106,7 +81,7 @@ public class ReadDocFile {
             // must call before stripping identifier
             HSSFSheet currentSheet = template.getSheetAt(sheetNumber);
 
-            HSSFCell currentCell = getCell(currentSheet, rowNumber, columnNumber);
+            HSSFCell currentCell = getCell(currentSheet, DocAnalyzer.rowNumber, columnNumber);
             pasteTextIntoCell(currentCell, rts);
             loopCounter++;
             System.out.println("Text pasted into cell " + loopCounter + " times");
@@ -147,30 +122,26 @@ public class ReadDocFile {
     }
 
     private static int getSheetNumberFromParagraph(String plainTextParagraph) {
-        String sheetIdentifier = plainTextParagraph.substring(0, 4);
-        if (sheetIdentifier.charAt(1) == ':') { // we should be pasting into sheet 0
-            return 0;
-        }
-        if (sheetIdentifier.charAt(2) == ':') { // e.g. D2: or BB:
-            // we should return 0 if charAt(1), aka determinant, is a letter (something like BB:)
-            // and return determinant if determinant is a number (something like D2:)
-            String determinant = "" + sheetIdentifier.charAt(1);
-            return ALPHABET.contains(determinant)? 0:Integer.valueOf(determinant);
-        }
-        if (sheetIdentifier.charAt(3) == ':') { // e.g. AA1:
-            return Integer.parseInt("" + sheetIdentifier.charAt(2));
+
+        Pattern pattern = Pattern.compile(SHEET_REGEX);
+        String identifier = plainTextParagraph.substring(0, 6).trim(); // AB4(0):
+        Matcher identifierMatcher = pattern.matcher(identifier);
+        if (!identifierMatcher.find()) {
+            throw new IllegalStateException("Could not get sheet number from paragraph. The regex was not matched.");
         }
 
-        throw new IllegalStateException("Could not get sheet number from paragraph. None of the available options" +
-                "were matched");
+        String matched = identifierMatcher.group(1);
+        return Integer.parseInt(matched);
+
+
     }
 
     private static HSSFFont getBoldText() {
         HSSFCellStyle cellStyle = template.createCellStyle();
         HSSFFont boldFont = template.createFont();
         boldFont.setBold(true);
-        boldFont.setFontName(fontName);
-        boldFont.setFontHeightInPoints((short) fontSize);
+        boldFont.setFontName(DocAnalyzer.fontName);
+        boldFont.setFontHeightInPoints((short) DocAnalyzer.fontSize);
         cellStyle.setFont(boldFont);
         return boldFont;
 
@@ -211,20 +182,18 @@ public class ReadDocFile {
         return rts;
     }
 
+
     private static String stripIdentifier(String plainText) {
-        if (plainText.charAt(1) == ':') { // single-letter identifier; three chars to strip (e.g. D:\s)
-           return plainText.substring(3);
+
+        Pattern identifierPattern = Pattern.compile(IDENTIFIER_REGEX);
+        Matcher identifierMatcher = identifierPattern.matcher(plainText);
+
+        if (!identifierMatcher.find()) {
+            throw new IllegalStateException("Couldn't strip identifier from paragraph. Did not match regex");
         }
 
-        if (plainText.charAt(2) == ':') { // e.g. A1:\s or AB:\s
-            return plainText.substring(4);
-        }
-
-        if (plainText.charAt(3) == ':') { // e.g. BC2:\s
-            return plainText.substring(5);
-        }
-
-       throw new IllegalStateException("Could not strip identifier. None of the options were matched.");
+        plainText = plainText.replaceFirst(IDENTIFIER_REGEX, "");
+        return plainText;
 
     }
 
@@ -241,7 +210,7 @@ public class ReadDocFile {
         // above is blank, but only if those cells are blank after pasting in text of all paragraphs
 
         // get the row above the one we're pasting text into
-        HSSFRow row = currentSheet.getRow(rowNumber-1);
+        HSSFRow row = currentSheet.getRow(DocAnalyzer.rowNumber - 1);
         int endColumnNumber = 0;
         while (true) { // check cell contents of row above column number
             if (row.getCell(endColumnNumber) == null) { // the cell above is empty
@@ -261,7 +230,7 @@ public class ReadDocFile {
 
         for (Integer sheetNumber : sheetNumbersUsed) {
             HSSFSheet currentSheet = template.getSheetAt(sheetNumber);
-            HSSFRow row = currentSheet.getRow(rowNumber);
+            HSSFRow row = currentSheet.getRow(DocAnalyzer.rowNumber);
             for (int column = 0; column < getLastFilledColumnNumber(currentSheet); column++) {
                 HSSFCell cell = row.getCell(column);
                 if (cell.getStringCellValue().equals("")) { // if the cell is empty
@@ -278,7 +247,7 @@ public class ReadDocFile {
     // get a paragraph from the word document
     private static Paragraph getCurrentParagraph(int paragraphNumber) throws IOException {
 
-        Range range = wordDocument.getRange();
+        Range range = DocAnalyzer.wordDocument.getRange();
 
         int lastParagraphNumber = range.numParagraphs() - 1;
         if (paragraphNumber > lastParagraphNumber) {
