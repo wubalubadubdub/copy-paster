@@ -19,6 +19,7 @@ public class RowCopyPaster {
 
     private static final String ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     private static final String SHEET_REGEX = "[A-Z]+[0-9]+\\(([0-9])\\).*";
+    private static final String COLUMN_REGEX = "([A-Z]+)[0-9]+.*";
     private static final String IDENTIFIER_REGEX = "[A-Z]+[0-9]+\\([0-9]\\):";
     private static HashMap<String, Integer> lettersToNumbers;
     private static HSSFWorkbook template;
@@ -94,30 +95,12 @@ public class RowCopyPaster {
 
     private static int getColumnNumberFromParagraph(String plainTextParagraph) {
 
-        // get first four characters from the paragraph, i.e. the column identifier and colon,
-        // e.g. B: or D2: or AC: or AD2:
-        String columnIdentifier = plainTextParagraph.substring(0, 4);
-
-        if (columnIdentifier.charAt(1) == ':') { // e.g. A:
-            columnIdentifier = ""+ columnIdentifier.charAt(0);
+        Pattern pattern = Pattern.compile(COLUMN_REGEX);
+        Matcher columnMatcher = pattern.matcher(plainTextParagraph.substring(0,6).trim());
+        if (!columnMatcher.find()) {
+            throw new IllegalStateException("Couldn't match the COLUMN_REGEX to get the column number");
         }
-
-        else if (columnIdentifier.charAt(2) == ':') { // e.g. A1: or AB:
-            String determinant = "" + columnIdentifier.charAt(1);
-
-            if (!ALPHABET.contains(determinant)) { // this is the A1: case
-                columnIdentifier = ""+ columnIdentifier.charAt(0);
-            }
-
-            else { // this is the AB: case
-                columnIdentifier = columnIdentifier.substring(0, 2);
-            }
-        }
-
-        else if (columnIdentifier.charAt(3) == ':') { // e.g. AD2:
-            columnIdentifier = columnIdentifier.substring(0, 2);
-        }
-
+        String columnIdentifier = columnMatcher.group(1);
         return lettersToNumbers.get(columnIdentifier);
     }
 
@@ -192,7 +175,7 @@ public class RowCopyPaster {
             throw new IllegalStateException("Couldn't strip identifier from paragraph. Did not match regex");
         }
 
-        plainText = plainText.replaceFirst(IDENTIFIER_REGEX, "");
+        plainText = plainText.replaceFirst(IDENTIFIER_REGEX, "").trim();
         return plainText;
 
     }
