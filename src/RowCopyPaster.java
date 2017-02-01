@@ -117,14 +117,14 @@ public class RowCopyPaster {
 
     }
 
-    private static HSSFFont getBoldText() {
+    private static HSSFFont getFont() {
         HSSFCellStyle cellStyle = template.createCellStyle();
-        HSSFFont boldFont = template.createFont();
-        boldFont.setBold(true);
-        boldFont.setFontName(DocAnalyzer.fontName);
-        boldFont.setFontHeightInPoints((short) DocAnalyzer.fontSize);
-        cellStyle.setFont(boldFont);
-        return boldFont;
+        HSSFFont font = template.createFont();
+        font.setBold(true);
+        font.setFontName(DocAnalyzer.fontName);
+        font.setFontHeightInPoints((short) DocAnalyzer.fontSize);
+        cellStyle.setFont(font);
+        return font;
 
     }
 
@@ -156,7 +156,7 @@ public class RowCopyPaster {
 
 
                 // apply bold font to that substring
-                rts.applyFont(startBold, endBold, getBoldText());
+                rts.applyFont(startBold, endBold, getFont());
 
             }
         }
