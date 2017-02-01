@@ -184,7 +184,7 @@ public class RowCopyPaster {
             if (characterRun.isBold()) {
 
                 // apply bold font to that substring
-                rts.applyFont(startIndex, endIndex - 1, getBold()); // this is applying the font only to the bold portion
+                rts.applyFont(startIndex, endIndex, getBold()); // this is applying the font only to the bold portion
                 // of text, from startBoldIndex to endBoldIndex. we need to apply the font size and name to the entire
                 // rts string, though
 
@@ -231,13 +231,18 @@ public class RowCopyPaster {
         CellStyle style = template.createCellStyle();
 
         // default alignment is top left, but this can be manually given as argument TL
-        if (DocAnalyzer.cellAlignment == null | DocAnalyzer.cellAlignment.equals("TL")) {
+        if (DocAnalyzer.cellAlignment == null) {
             style.setVerticalAlignment(VerticalAlignment.TOP);
             style.setAlignment(HorizontalAlignment.LEFT);
         }
 
-        else { // should be one of TC, TR, ML, MC, MR, BL, BC, BR
+        else { // should be one of TL, TC, TR, ML, MC, MR, BL, BC, BR
             switch (DocAnalyzer.cellAlignment) {
+                case "TL":
+                    style.setVerticalAlignment(VerticalAlignment.TOP);
+                    style.setAlignment(HorizontalAlignment.LEFT);
+                    break;
+
                 case "TC":
                     style.setVerticalAlignment(VerticalAlignment.TOP);
                     style.setAlignment(HorizontalAlignment.CENTER);
