@@ -21,6 +21,7 @@ public class ColumnCopyPaster {
     private static HSSFWorkbook template;
     private static FileOutputStream outputStream;
     private static Set<Integer> sheetNumbersUsed;
+    private static int highestRowNumber;
 
     static void run() {
         final String excelDocumentName = DocAnalyzer.PATH_PREFIX + DocAnalyzer.wordDocumentName.replace(".doc", ".xls");
@@ -64,6 +65,9 @@ public class ColumnCopyPaster {
             System.out.println(plainTextParagraph);
 
             int rowNumber = getRowNumberFromParagraph(plainTextParagraph);
+            if (rowNumber > highestRowNumber) {
+                highestRowNumber = rowNumber;
+            }
             HSSFRichTextString rts = getBoldParagraph(currentParagraph);
 
             int sheetNumber = getSheetNumberFromParagraph(plainTextParagraph);
@@ -141,72 +145,20 @@ public class ColumnCopyPaster {
 
     private static int getLastFilledRowNumber(HSSFSheet currentSheet) {
 
-        // get the column left of the one we're pasting into
-        int columnIndex = DocAnalyzer.columnNumber - 1;
-        int rowIndex = 0;
-        while (true) { // check cell contents of cells left of column number
-            // keep looking until we have found three contiguous empty cells in a column
-            HSSFRow rowOne = currentSheet.getRow(rowIndex);
-            HSSFRow rowTwo = currentSheet.getRow(rowIndex + 1);
-            HSSFRow rowThree = currentSheet.getRow(rowIndex + 2);
+        // start looking for empty rows at the next one down from the lowest one we pasted text into
+        int rowIndex = highestRowNumber + 1;
+        while (true) { // check for empty rows
 
-            if (rowOne == null) {
-                throw new IllegalStateException("Row " + rowIndex + " is null");
-            }
-
-
-            if (rowTwo == null) {
-                throw new IllegalStateException("Row " + rowIndex + 1 +  " is null");
-            }
-
-
-            if (rowThree == null) {
-                throw new IllegalStateException("Row " + rowIndex + 2 + " is null");
-            }
-
-            HSSFCell cellOne = rowOne.getCell(columnIndex);
-            HSSFCell cellTwo = rowTwo.getCell(columnIndex);
-            HSSFCell cellThree = rowThree.getCell(columnIndex);
-
-            boolean cellOneEmpty = isCellEmpty(cellOne);
-            boolean cellTwoEmpty = isCellEmpty(cellTwo);
-            boolean cellThreeEmpty = isCellEmpty(cellThree);
-
-
-           /* if (cellOneEmpty && cellTwoEmpty && cellThreeEmpty) {
+            HSSFRow row = currentSheet.getRow(rowIndex);
+            if (row == null) {
                 break;
             }
-            if (cellOneEmpty && cellTwoEmpty) { // only first 2 of 3 cells were null. can advance counter by 3
-                rowIndex += 3;
-            }
-            else if (!cellOneEmpty && cellThreeEmpty) { // last of 3 cells was null. can advance counter by 2
-                rowIndex += 2;
-            }
 
-            else {
-                rowIndex++;
-            }*/
+            rowIndex++;
 
-           if (cellOneEmpty) {
-               break;
-           }
-
-           rowIndex++;
         }
 
         return rowIndex;
-    }
-
-    private static boolean isCellEmpty(HSSFCell cell) {
-        if (cell == null || cell.getCellType() == Cell.CELL_TYPE_BLANK) {
-            return true;
-        }
-
-        if (cell.getCellType() == Cell.CELL_TYPE_STRING && cell.getStringCellValue().isEmpty()) {
-            return true;
-        }
-
-        return false;
     }
 
     private static int getRowNumberFromParagraph(String plainTextParagraph) {
