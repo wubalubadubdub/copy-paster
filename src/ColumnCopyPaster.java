@@ -8,6 +8,7 @@ import org.apache.poi.ss.usermodel.*;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -252,6 +253,7 @@ public class ColumnCopyPaster {
 
         String plainTextNoIdentifier = stripIdentifier(currentParagraph.text()).trim();
         HSSFRichTextString rts = new HSSFRichTextString(plainTextNoIdentifier);
+        ArrayList<Integer> indicesUsed = new ArrayList<>();
 
 
         Matcher identifierMatcher = DocAnalyzer.identifierPattern.matcher(currentParagraph.text());
@@ -275,33 +277,38 @@ public class ColumnCopyPaster {
                 continue;
             }
 
-
-
             // TODO add check here for multiple occurences of same bolded string
+            // need to use "fromIndex" 2nd param of indexOf method
 
             int startIndex = plainTextNoIdentifier.indexOf(textToMatch);
+            if (indicesUsed.contains(startIndex)) {
+                int fromIndex = indicesUsed.get(indicesUsed.size() - 1) + 1;
+                startIndex = plainTextNoIdentifier.indexOf(textToMatch, fromIndex);
+            }
+
+            indicesUsed.add(startIndex);
             int endIndex = startIndex + textToMatch.length();
 
-            // if the run of characters is bolded
-            if (characterRun.isBold()) {
+                // if the run of characters is bolded
+                if (characterRun.isBold()) {
 
-                // apply bold font to that substring
-                rts.applyFont(startIndex, endIndex - 1, getBold()); // this is applying the font only to the bold portion
-                // of text, from startBoldIndex to endBoldIndex. we need to apply the font size and name to the entire
-                // rts string, though
+                    // apply bold font to that substring
+                    rts.applyFont(startIndex, endIndex - 1, getBold()); // this is applying the font only to the bold portion
+                    // of text, from startBoldIndex to endBoldIndex. we need to apply the font size and name to the entire
+                    // rts string, though
 
-                // use getbold, which has correct font name and size, and apply that to only the substrings that
-                // should be bolded. use getfont, which has correct font name and size but no bolding, and apply that
-                // to the rest of the text
+                    // use getbold, which has correct font name and size, and apply that to only the substrings that
+                    // should be bolded. use getfont, which has correct font name and size but no bolding, and apply that
+                    // to the rest of the text
+
+                } else {
+
+                    rts.applyFont(startIndex, endIndex, getFontWithCorrectNameAndSize());
+                }
 
             }
 
-            else {
 
-                rts.applyFont(startIndex, endIndex, getFontWithCorrectNameAndSize());
-            }
-
-        }
 
         return rts;
     }
