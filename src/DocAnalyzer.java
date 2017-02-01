@@ -28,12 +28,17 @@ public class DocAnalyzer {
     static int columnNumber;
     static HashMap<String, Integer> lettersToNumbers;
     private static boolean isRowTemplate;
+    static String cellAlignment;
 
 
     public static void main(String[] args) {
-        if (args.length != 1) {
+        if (args.length < 1) {
             System.out.println("Must provide the Word document filename as an argument");
             System.exit(0);
+        }
+
+        if (args.length > 1) {
+            cellAlignment = args[1];
         }
 
         wordDocumentName = args[0];

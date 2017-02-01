@@ -188,8 +188,61 @@ public class RowCopyPaster {
     private static void setCellStyle(HSSFCell cell) {
 
         CellStyle style = template.createCellStyle();
-        style.setVerticalAlignment(VerticalAlignment.TOP);
-        style.setAlignment(HorizontalAlignment.LEFT);
+
+        // default alignment is top left, but this can be manually given as argument TL
+        if (DocAnalyzer.cellAlignment == null | DocAnalyzer.cellAlignment.equals("TL")) {
+            style.setVerticalAlignment(VerticalAlignment.TOP);
+            style.setAlignment(HorizontalAlignment.LEFT);
+        }
+
+        else { // should be one of TC, TR, ML, MC, MR, BL, BC, BR
+            switch (DocAnalyzer.cellAlignment) {
+                case "TC":
+                    style.setVerticalAlignment(VerticalAlignment.TOP);
+                    style.setAlignment(HorizontalAlignment.CENTER);
+                    break;
+
+                case "TR":
+                    style.setVerticalAlignment(VerticalAlignment.TOP);
+                    style.setAlignment(HorizontalAlignment.RIGHT);
+                    break;
+
+                case "ML":
+                    style.setVerticalAlignment(VerticalAlignment.CENTER);
+                    style.setAlignment(HorizontalAlignment.LEFT);
+                    break;
+
+                case "MC":
+                    style.setVerticalAlignment(VerticalAlignment.CENTER);
+                    style.setAlignment(HorizontalAlignment.CENTER);
+                    break;
+
+                case "MR":
+                    style.setVerticalAlignment(VerticalAlignment.CENTER);
+                    style.setAlignment(HorizontalAlignment.RIGHT);
+                    break;
+
+                case "BL":
+                    style.setVerticalAlignment(VerticalAlignment.BOTTOM);
+                    style.setAlignment(HorizontalAlignment.LEFT);
+                    break;
+
+                case "BC":
+                    style.setVerticalAlignment(VerticalAlignment.BOTTOM);
+                    style.setAlignment(HorizontalAlignment.CENTER);
+                    break;
+
+                case "BR":
+                    style.setVerticalAlignment(VerticalAlignment.BOTTOM);
+                    style.setAlignment(HorizontalAlignment.RIGHT);
+                    break;
+
+                default:
+                    throw new IllegalArgumentException("Invalid cell alignment argument. Must be one of " +
+                            "TL, TC, TR, ML, MC, MR, BL, BC, BR");
+            }
+        }
+
         style.setWrapText(true);
         style.setFillForegroundColor(HSSFColor.WHITE.index);
         cell.setCellStyle(style);
