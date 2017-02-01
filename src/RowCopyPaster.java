@@ -11,7 +11,6 @@ import org.apache.poi.ss.usermodel.VerticalAlignment;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -22,11 +21,6 @@ import java.util.regex.Pattern;
  */
 public class RowCopyPaster {
 
-    private static final String ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    private static final String SHEET_REGEX = "[A-Z]+[0-9]+\\(([0-9])\\).*";
-    private static final String COLUMN_REGEX = "([A-Z]+)[0-9]+.*";
-    private static final String IDENTIFIER_REGEX = "[A-Z]+[0-9]+\\([0-9]\\):";
-    private static HashMap<String, Integer> lettersToNumbers;
     private static HSSFWorkbook template;
     private static FileOutputStream outputStream;
     private static Set<Integer> sheetNumbersUsed;
@@ -34,7 +28,6 @@ public class RowCopyPaster {
    static void run()
 
     {
-        associateColumnLettersWithNumbers();
 
         final String excelDocumentName = DocAnalyzer.PATH_PREFIX + DocAnalyzer.wordDocumentName.replace(".doc", ".xls");
         try {
@@ -100,19 +93,19 @@ public class RowCopyPaster {
 
     private static int getColumnNumberFromParagraph(String plainTextParagraph) {
 
-        Pattern pattern = Pattern.compile(COLUMN_REGEX);
+        Pattern pattern = Pattern.compile(DocAnalyzer.COLUMN_REGEX);
         Matcher columnMatcher = pattern.matcher(plainTextParagraph.substring(0,6).trim());
         if (!columnMatcher.find()) {
             throw new IllegalStateException("Couldn't match the COLUMN_REGEX to get the column number");
         }
         String columnIdentifier = columnMatcher.group(1);
-        return lettersToNumbers.get(columnIdentifier);
+        return DocAnalyzer.lettersToNumbers.get(columnIdentifier);
     }
 
     private static int getSheetNumberFromParagraph(String plainTextParagraph) {
 
-        Pattern pattern = Pattern.compile(SHEET_REGEX);
-        String identifier = plainTextParagraph.substring(0, 6).trim(); // AB4(0):
+        Pattern pattern = Pattern.compile(DocAnalyzer.SHEET_REGEX);
+        String identifier = plainTextParagraph.substring(0, 6).trim(); // e.g. AB4(0):
         Matcher identifierMatcher = pattern.matcher(identifier);
         if (!identifierMatcher.find()) {
             throw new IllegalStateException("Could not get sheet number from paragraph. The regex was not matched.");
@@ -173,14 +166,14 @@ public class RowCopyPaster {
 
     private static String stripIdentifier(String plainText) {
 
-        Pattern identifierPattern = Pattern.compile(IDENTIFIER_REGEX);
+        Pattern identifierPattern = Pattern.compile(DocAnalyzer.IDENTIFIER_REGEX);
         Matcher identifierMatcher = identifierPattern.matcher(plainText);
 
         if (!identifierMatcher.find()) {
             throw new IllegalStateException("Couldn't strip identifier from paragraph. Did not match regex");
         }
 
-        plainText = plainText.replaceFirst(IDENTIFIER_REGEX, "").trim();
+        plainText = plainText.replaceFirst(DocAnalyzer.IDENTIFIER_REGEX, "").trim();
         return plainText;
 
     }
@@ -286,33 +279,4 @@ public class RowCopyPaster {
 
     }
 
-    private static void associateColumnLettersWithNumbers() {
-        lettersToNumbers = new HashMap<>();
-
-
-        for (int i = 0; i < 6; i++) {
-
-            if (i==0) { // single-letter column
-                for (int j = 0; j < 26; j++) {
-                    lettersToNumbers.put(String.valueOf(ALPHABET.charAt(j)), j);
-
-                }
-            }
-
-            else {
-                for (int j = 0; j < 26; j++) {
-                    lettersToNumbers.put(
-                            String.valueOf(ALPHABET.charAt(i-1)) + String.valueOf(ALPHABET.charAt(j)), 26*i+j);
-
-                    // when i = 1, column #s 26-51, or (26*1)+j
-                    // i = 2, column #s 52-77, or (26*2)+j
-                    // etc
-
-                }
-
-            }
-
-        }
-
-    }
 }

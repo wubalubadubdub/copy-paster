@@ -3,6 +3,7 @@ import org.apache.poi.hwpf.usermodel.Paragraph;
 import org.apache.poi.hwpf.usermodel.Range;
 
 import java.io.*;
+import java.util.HashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -11,8 +12,12 @@ import java.util.regex.Pattern;
  */
 public class DocAnalyzer {
 
-    private static final String REGEX = "[A-Z]+([0-9]).*";
+    static final String ROW_REGEX = "[A-Z]+([0-9]+).*";
+    static final String SHEET_REGEX = "[A-Z]+[0-9]+\\(([0-9])\\).*";
+    static final String COLUMN_REGEX = "([A-Z]+)[0-9]+.*";
+    static final String IDENTIFIER_REGEX = "[A-Z]+[0-9]+\\([0-9]\\):";
     static final String PATH_PREFIX = "C:\\Users\\bearg\\OneDrive\\Documents\\transcriptions\\";
+    private static final String ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
     private static FileInputStream inputStream;
     static HWPFDocument wordDocument;
@@ -20,6 +25,8 @@ public class DocAnalyzer {
     static int fontSize;
     static String fontName;
     static int rowNumber;
+    static int columnNumber;
+    static HashMap<String, Integer> lettersToNumbers;
     private static boolean isRowTemplate;
 
 
@@ -30,6 +37,7 @@ public class DocAnalyzer {
         }
 
         wordDocumentName = args[0];
+        associateColumnLettersWithNumbers();
         analyzeDoc();
     }
 
@@ -57,7 +65,7 @@ public class DocAnalyzer {
         }
 
         else {
-            throw new IllegalStateException("Row template was not detected correctly");
+            ColumnCopyPaster.run();
         }
 
 
@@ -77,7 +85,7 @@ public class DocAnalyzer {
         }
         String secondParagraphIdentifier = getIdentifier(range.getParagraph(i));
 
-        Pattern pattern = Pattern.compile(REGEX);
+        Pattern pattern = Pattern.compile(ROW_REGEX);
         Matcher first = pattern.matcher(firstParagraphIdentifier);
         Matcher second = pattern.matcher(secondParagraphIdentifier);
 
@@ -86,7 +94,7 @@ public class DocAnalyzer {
                     " identifiers");
         }
 
-        String firstMatch = first.group(1); // group 1 refers to the digit captured with () used in the REGEX
+        String firstMatch = first.group(1); // group 1 refers to the digit captured with () used in the ROW_REGEX
         String secondMatch = second.group(1);
 
         if (Integer.parseInt(firstMatch) == Integer.parseInt(secondMatch)) { // e.g. A4(0), B4(0); Z3(0), AA3(0); AC4(1), AD4(1)
@@ -95,8 +103,54 @@ public class DocAnalyzer {
             return true;
         }
 
+        // else we have a column template, e.g. J9(0), J10(0), etc and column number will be the first 1 or 2 letters
+        setColumnNumber(firstParagraphIdentifier);
         return false;
 
+
+    }
+
+    private static void setColumnNumber(String identifier) {
+
+        Pattern columnPattern = Pattern.compile(COLUMN_REGEX);
+        Matcher columnMatcher = columnPattern.matcher(identifier);
+
+        if (!columnMatcher.find()) {
+            throw new IllegalStateException("The column regex did not match the identifier." +
+                    " Check the identifier of the first paragraph to ensure it is formatted properly.");
+        }
+
+        String columnNumberString = columnMatcher.group(1);
+        columnNumber = lettersToNumbers.get(columnNumberString);
+    }
+
+    private static void associateColumnLettersWithNumbers() {
+        lettersToNumbers = new HashMap<>();
+
+
+        for (int i = 0; i < 6; i++) {
+
+            if (i==0) { // single-letter column
+                for (int j = 0; j < 26; j++) {
+                    lettersToNumbers.put(String.valueOf(ALPHABET.charAt(j)), j);
+
+                }
+            }
+
+            else {
+                for (int j = 0; j < 26; j++) {
+                    lettersToNumbers.put(
+                            String.valueOf(ALPHABET.charAt(i-1)) + String.valueOf(ALPHABET.charAt(j)), 26*i+j);
+
+                    // when i = 1, column #s 26-51, or (26*1)+j
+                    // i = 2, column #s 52-77, or (26*2)+j
+                    // etc
+
+                }
+
+            }
+
+        }
 
     }
 }
