@@ -11,7 +11,6 @@ import org.apache.poi.ss.usermodel.VerticalAlignment;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -25,8 +24,6 @@ public class RowCopyPaster {
     private static HSSFWorkbook template;
     private static FileOutputStream outputStream;
     private static Set<Integer> sheetNumbersUsed;
-    private static final String EXACT_IDENTIFIER_REGEX = "[A-Z]+[0-9]+\\([0-9]\\):\\s";
-    private static Pattern identifierPattern = Pattern.compile(EXACT_IDENTIFIER_REGEX);
 
    static void run()
 
@@ -147,25 +144,29 @@ public class RowCopyPaster {
         String plainTextNoIdentifier = stripIdentifier(currentParagraph.text()).trim();
         HSSFRichTextString rts = new HSSFRichTextString(plainTextNoIdentifier);
 
-        int numCharacterRuns = currentParagraph.numCharacterRuns();
-        Matcher identifierMatcher = identifierPattern.matcher(currentParagraph.text());
+
+        Matcher identifierMatcher = DocAnalyzer.identifierPattern.matcher(currentParagraph.text());
         if (!identifierMatcher.find()) {
             throw new IllegalStateException("Identifier was not found within this paragraph");
         }
         String identifier = identifierMatcher.group(0);
         currentParagraph.replaceText(identifier, "");
+        int numCharacterRuns = currentParagraph.numCharacterRuns();
 
         for (int i=0; i < numCharacterRuns; i++) {
 
             // get character runs one at a time
             CharacterRun characterRun = currentParagraph.getCharacterRun(i);
-            if (characterRun.text().isEmpty() | characterRun.text().equals("\r")) {
-                continue;
-            }
 
             // find that character run substring in the entire text
             // ignore character runs until after the identifier
             String textToMatch = characterRun.text().trim();
+
+            if (textToMatch.isEmpty() | textToMatch.equals("\r")) {
+                continue;
+            }
+
+
 
             // TODO add check here for multiple occurences of same bolded string
 
@@ -176,7 +177,7 @@ public class RowCopyPaster {
             if (characterRun.isBold()) {
 
                 // apply bold font to that substring
-                rts.applyFont(startIndex, endIndex, getBold()); // this is applying the font only to the bold portion
+                rts.applyFont(startIndex, endIndex - 1, getBold()); // this is applying the font only to the bold portion
                 // of text, from startBoldIndex to endBoldIndex. we need to apply the font size and name to the entire
                 // rts string, though
 

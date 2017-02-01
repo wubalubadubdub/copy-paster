@@ -29,6 +29,8 @@ public class DocAnalyzer {
     static HashMap<String, Integer> lettersToNumbers;
     private static boolean isRowTemplate;
     static String cellAlignment;
+    static final String EXACT_IDENTIFIER_REGEX = "[A-Z]+[0-9]+\\([0-9]\\):\\s";
+    static final Pattern identifierPattern = Pattern.compile(EXACT_IDENTIFIER_REGEX);
 
 
     public static void main(String[] args) {

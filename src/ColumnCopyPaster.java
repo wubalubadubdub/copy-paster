@@ -226,15 +226,22 @@ public class ColumnCopyPaster {
         return Integer.parseInt(rowIdentifier) - 1; // need to -1 since program is 0-based
     }
 
-    private static HSSFFont getFont() {
+    private static HSSFFont getBold() {
         HSSFCellStyle cellStyle = template.createCellStyle();
+        HSSFFont bold = template.createFont();
+        bold.setBold(true);
+        bold.setFontName(DocAnalyzer.fontName);
+        bold.setFontHeightInPoints((short) DocAnalyzer.fontSize);
+        cellStyle.setFont(bold);
+        return bold;
+
+    }
+
+    private static HSSFFont getFontWithCorrectNameAndSize() {
         HSSFFont font = template.createFont();
-        font.setBold(true);
         font.setFontName(DocAnalyzer.fontName);
         font.setFontHeightInPoints((short) DocAnalyzer.fontSize);
-        cellStyle.setFont(font);
         return font;
-
     }
 
     private static HSSFRichTextString getBoldParagraph(Paragraph currentParagraph) {
@@ -243,32 +250,59 @@ public class ColumnCopyPaster {
             return new HSSFRichTextString(currentParagraph.text());
         }
 
-        String plainTextWithoutIdentifier = stripIdentifier(currentParagraph.text());
-        HSSFRichTextString rts = new HSSFRichTextString(plainTextWithoutIdentifier);
+        String plainTextNoIdentifier = stripIdentifier(currentParagraph.text()).trim();
+        HSSFRichTextString rts = new HSSFRichTextString(plainTextNoIdentifier);
 
 
-        for (int i=0; i < currentParagraph.numCharacterRuns(); i++) {
+        Matcher identifierMatcher = DocAnalyzer.identifierPattern.matcher(currentParagraph.text());
+        if (!identifierMatcher.find()) {
+            throw new IllegalStateException("Identifier was not found within this paragraph");
+        }
+        String identifier = identifierMatcher.group(0);
+        currentParagraph.replaceText(identifier, "");
+        int numCharacterRuns = currentParagraph.numCharacterRuns();
+
+        for (int i=0; i < numCharacterRuns; i++) {
 
             // get character runs one at a time
             CharacterRun characterRun = currentParagraph.getCharacterRun(i);
 
+            // find that character run substring in the entire text
+            // ignore character runs until after the identifier
+            String textToMatch = characterRun.text().trim();
+
+            if (textToMatch.isEmpty() | textToMatch.equals("\r")) {
+                continue;
+            }
+
+
+
+            // TODO add check here for multiple occurences of same bolded string
+
+            int startIndex = plainTextNoIdentifier.indexOf(textToMatch);
+            int endIndex = startIndex + textToMatch.length();
+
             // if the run of characters is bolded
             if (characterRun.isBold()) {
 
-                // find that substring in the original
-                String textToMatch = characterRun.text().trim();
-
-                // TODO add check here for multiple occurences of same bolded string
-
-                int startBold = plainTextWithoutIdentifier.indexOf(textToMatch);
-                int endBold = startBold + textToMatch.length();
-
-
                 // apply bold font to that substring
-                rts.applyFont(startBold, endBold, getFont());
+                rts.applyFont(startIndex, endIndex - 1, getBold()); // this is applying the font only to the bold portion
+                // of text, from startBoldIndex to endBoldIndex. we need to apply the font size and name to the entire
+                // rts string, though
+
+                // use getbold, which has correct font name and size, and apply that to only the substrings that
+                // should be bolded. use getfont, which has correct font name and size but no bolding, and apply that
+                // to the rest of the text
 
             }
+
+            else {
+
+                rts.applyFont(startIndex, endIndex, getFontWithCorrectNameAndSize());
+            }
+
         }
+
         return rts;
     }
 
