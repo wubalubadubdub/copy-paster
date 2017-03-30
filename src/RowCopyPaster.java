@@ -80,14 +80,19 @@ public class RowCopyPaster {
             sheetNumbersUsed.add(sheetNumber);
 
             // must call before stripping identifier
-            HSSFSheet currentSheet = template.getSheetAt(sheetNumber);
+            HSSFSheet currentSheet;
+            if (DocAnalyzer.defaultRowAndSheetSet) {
+                currentSheet = template.getSheetAt(0);
+            }
+
+            else {
+                currentSheet = template.getSheetAt(sheetNumber);
+            }
 
             HSSFCell currentCell = getCell(currentSheet, DocAnalyzer.rowNumber, columnNumber);
             pasteTextIntoCell(currentCell, rts);
             loopCounter++;
             System.out.println("Text pasted into cell " + loopCounter + " times");
-
-
 
         }
 
@@ -96,7 +101,8 @@ public class RowCopyPaster {
     private static int getColumnNumberFromParagraph(String plainTextParagraph) {
 
         Pattern pattern = Pattern.compile(DocAnalyzer.COLUMN_REGEX);
-        Matcher columnMatcher = pattern.matcher(plainTextParagraph.substring(0,6).trim());
+        Matcher columnMatcher = pattern.matcher(plainTextParagraph.substring(0,6).trim()); // e.g. AA3(1): or AA: The
+        // when command line option D is given
         if (!columnMatcher.find()) {
             throw new IllegalStateException("Couldn't match the COLUMN_REGEX to get the column number");
         }
@@ -104,8 +110,13 @@ public class RowCopyPaster {
         return DocAnalyzer.lettersToNumbers.get(columnIdentifier);
     }
 
-    // this method can be bypassed with command line arg for the common case where we are pasting into only one sheet
+
     private static int getSheetNumberFromParagraph(String plainTextParagraph) {
+
+        // below code can be bypassed with command line arg "D" for the common case where we are pasting into only one sheet
+       if (DocAnalyzer.defaultRowAndSheetSet) {
+           return 0;
+       }
 
         Pattern pattern = Pattern.compile(DocAnalyzer.SHEET_REGEX);
         String identifier = plainTextParagraph.substring(0, 6).trim(); // e.g. AB4(0):

@@ -14,8 +14,8 @@ public class DocAnalyzer {
 
     static final String ROW_REGEX = "[A-Z]+([0-9]+).*";
     static final String SHEET_REGEX = "[A-Z]+[0-9]+\\(([0-9])\\).*";
-    static final String COLUMN_REGEX = "([A-Z]+)[0-9]+.*";
-    static final String IDENTIFIER_REGEX = "[A-Z]+[0-9]+\\([0-9]\\):";
+    static final String COLUMN_REGEX = "([A-Z]+)[0-9]*.*";
+    static final String IDENTIFIER_REGEX = "[A-Z]+[0-9]*(\\([0-9]\\))?:";
     static final String PATH_PREFIX = "C:\\Users\\bearg\\OneDrive\\Documents\\transcriptions\\";
     private static final String ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
@@ -30,7 +30,7 @@ public class DocAnalyzer {
     static HashMap<String, Integer> lettersToNumbers;
     private static boolean isRowTemplate;
     static String cellAlignment;
-    static final String EXACT_IDENTIFIER_REGEX = "[A-Z]+[0-9]+\\([0-9]\\):\\s";
+    static final String EXACT_IDENTIFIER_REGEX = "[A-Z]+[0-9]*(\\([0-9]\\))?:\\s";
     static final Pattern identifierPattern = Pattern.compile(EXACT_IDENTIFIER_REGEX);
 
 
@@ -97,8 +97,15 @@ public class DocAnalyzer {
         return plaintext.substring(0, colonIndex + 1); // e.g. N4(1):
     }
 
-    // for common case with row template and we paste into row 3, can be bypassed by giving command line arg
+
     private static boolean checkIfRowTemplate(Range range) {
+
+        // for common case with row template and we paste into row 3, check can be bypassed by giving command line arg "D"
+        if (defaultRowAndSheetSet) {
+            rowNumber = 2; // row count is 0-based, so the 3rd row is given row number of 2
+            return true;
+        }
+
         String firstParagraphIdentifier = getIdentifier(range.getParagraph(0));
         int i = 1;
         while (range.getParagraph(i).text().equals("\r")) {
