@@ -32,6 +32,7 @@ public class DocAnalyzer {
     static String cellAlignment;
     static final String EXACT_IDENTIFIER_REGEX = "[A-Z]+[0-9]*(\\([0-9]\\))?:\\s";
     static final Pattern identifierPattern = Pattern.compile(EXACT_IDENTIFIER_REGEX);
+    private static final String ALIGNMENT_OPTIONS = "TL TC TR ML MC MR BL BC BR";
 
 
     public static void main(String[] args) {
@@ -46,11 +47,23 @@ public class DocAnalyzer {
         }
 
         else if (args.length == 3){ // non-default cell alignment and default row+sheet are given
+            if (!ALIGNMENT_OPTIONS.contains(args[1])) {
+                System.out.println("2nd argument must be cell alignment, one of TL TC TR ML MC MR BL BC BR");
+                System.exit(0);
+            }
             cellAlignment = args[1];
+            if (!args[2].equals("D")) {
+                System.out.println("3rd argument must be D, for default row 3 and sheet 0");
+                System.exit(0);
+            }
             defaultRowAndSheetSet = true;
         }
 
         else { // non-default cell alignment is given
+            if (!ALIGNMENT_OPTIONS.contains(args[1])) {
+                System.out.println("2nd argument must be cell alignment, one of TL TC TR ML MC MR BL BC BR");
+                System.exit(0);
+            }
             cellAlignment = args[1];
         }
 
@@ -119,7 +132,8 @@ public class DocAnalyzer {
 
         if (!(first.find() && second.find())) {
             throw new IllegalStateException("The regex did not match the identifier(s). Check the document for malformed" +
-                    " identifiers");
+                    " identifiers. Also, if not specifying D in program args for row template, the row and sheet numbers " +
+                    "must also be provided, e.g. C4(0): ");
         }
 
         String firstMatch = first.group(1); // group 1 refers to the digit captured with () used in the ROW_REGEX
