@@ -19,6 +19,7 @@ import java.util.regex.Pattern;
 
 /**
  * Created by bearg on 1/27/2017.
+ * Answers go horizontally in row template
  */
 public class RowCopyPaster {
 
@@ -103,6 +104,7 @@ public class RowCopyPaster {
         return DocAnalyzer.lettersToNumbers.get(columnIdentifier);
     }
 
+    // this method can be bypassed with command line arg for the common case where we are pasting into only one sheet
     private static int getSheetNumberFromParagraph(String plainTextParagraph) {
 
         Pattern pattern = Pattern.compile(DocAnalyzer.SHEET_REGEX);
@@ -358,8 +360,9 @@ public class RowCopyPaster {
         HSSFRow row = sheet.getRow(rowNumber);
         if (row == null) {
             throw new IllegalStateException("Trying to get the row in this sheet returned null." +
-                    "Is the entire sheet blank? If so, type some text into any cell in that row and " +
-                    "run the program again.");
+                    " Is the entire sheet blank? If so, type some text into any cell in that row and " +
+                    "run the program again. Also check to see if the first couple columns/rows of the template" +
+                    " are blank, and if so, put a placeholder letter in them before running program.");
         }
         return row.getCell(columnNumber, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
 

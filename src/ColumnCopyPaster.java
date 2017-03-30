@@ -16,6 +16,7 @@ import java.util.regex.Pattern;
 
 /**
  * Created by bearg on 1/31/2017.
+ * Answers go vertically in column template
  */
 public class ColumnCopyPaster {
 

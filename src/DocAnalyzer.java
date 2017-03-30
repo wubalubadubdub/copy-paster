@@ -26,6 +26,7 @@ public class DocAnalyzer {
     static String fontName;
     static int rowNumber;
     static int columnNumber;
+    static boolean defaultRowAndSheetSet;
     static HashMap<String, Integer> lettersToNumbers;
     private static boolean isRowTemplate;
     static String cellAlignment;
@@ -34,14 +35,26 @@ public class DocAnalyzer {
 
 
     public static void main(String[] args) {
-        if (args.length < 1) {
-            System.out.println("Must provide the Word document filename as an argument");
+        if (args.length < 1 || !args[0].endsWith(".doc")) {
+            System.out.println("Must provide the Word document filename ending with .doc as an argument");
             System.exit(0);
         }
 
-        if (args.length > 1) {
+
+        if (args.length == 2 && args[1].equals("D")) { // default row+sheet are given
+            defaultRowAndSheetSet = true;
+        }
+
+        else if (args.length == 3){ // non-default cell alignment and default row+sheet are given
+            cellAlignment = args[1];
+            defaultRowAndSheetSet = true;
+        }
+
+        else { // non-default cell alignment is given
             cellAlignment = args[1];
         }
+
+
 
         wordDocumentName = args[0];
         associateColumnLettersWithNumbers();
@@ -84,6 +97,7 @@ public class DocAnalyzer {
         return plaintext.substring(0, colonIndex + 1); // e.g. N4(1):
     }
 
+    // for common case with row template and we paste into row 3, can be bypassed by giving command line arg
     private static boolean checkIfRowTemplate(Range range) {
         String firstParagraphIdentifier = getIdentifier(range.getParagraph(0));
         int i = 1;
