@@ -32,9 +32,6 @@ public class RowCopyPaster {
 
         final String excelDocumentName = DocAnalyzer.PATH_PREFIX + DocAnalyzer.wordDocumentName.replace(".doc", ".xlsx");
         try {
-            // workbook = readFile(excelDocumentName);
-            //inputStream = new FileInputStream(excelDocumentName);
-            //workbook = WorkbookFactory.create(inputStream);
             workbook = readFile(excelDocumentName);
             outputStream = new FileOutputStream(excelDocumentName);
             System.out.println("Number of cell styles is " + workbook.getNumCellStyles());
@@ -92,7 +89,7 @@ public class RowCopyPaster {
                 currentSheet = workbook.getSheetAt(sheetNumber);
             }
 
-
+            currentSheet.setDisplayGridlines(true);
             Cell currentCell = getCell(currentSheet, DocAnalyzer.rowNumber, columnNumber);
             pasteTextIntoCell(currentCell, rts);
             loopCounter++;
@@ -308,8 +305,7 @@ public class RowCopyPaster {
         }
 
         style.setWrapText(true);
-        style.setFillForegroundColor(IndexedColors.WHITE.getIndex());
-        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        style.setFillForegroundColor(IndexedColors.AUTOMATIC.getIndex());
         cell.setCellStyle(style);
 
     }
