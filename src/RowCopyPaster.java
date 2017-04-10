@@ -3,10 +3,7 @@ import org.apache.poi.hssf.util.HSSFColor;
 import org.apache.poi.hwpf.usermodel.CharacterRun;
 import org.apache.poi.hwpf.usermodel.Paragraph;
 import org.apache.poi.hwpf.usermodel.Range;
-import org.apache.poi.ss.usermodel.CellStyle;
-import org.apache.poi.ss.usermodel.HorizontalAlignment;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.VerticalAlignment;
+import org.apache.poi.ss.usermodel.*;
 
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -35,6 +32,7 @@ public class RowCopyPaster {
         try {
             template = readFile(excelDocumentName);
             outputStream = new FileOutputStream(excelDocumentName);
+            System.out.println("Number of cell styles is " + template.getNumCellStyles());
             paragraphLoop();
             putXsInBlankCells();
             tearDown();
@@ -88,6 +86,7 @@ public class RowCopyPaster {
             else {
                 currentSheet = template.getSheetAt(sheetNumber);
             }
+
 
             HSSFCell currentCell = getCell(currentSheet, DocAnalyzer.rowNumber, columnNumber);
             pasteTextIntoCell(currentCell, rts);
@@ -303,8 +302,10 @@ public class RowCopyPaster {
         }
 
         style.setWrapText(true);
-        style.setFillForegroundColor(HSSFColor.WHITE.index);
+        style.setFillForegroundColor(IndexedColors.WHITE.getIndex());
+        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
         cell.setCellStyle(style);
+
     }
 
     private static int getLastFilledColumnNumber(HSSFSheet currentSheet) {
@@ -313,7 +314,7 @@ public class RowCopyPaster {
         // above is blank, but only if those cells are blank after pasting in text of all paragraphs
 
         // get the row above the one we're pasting text into
-        int rowIndex = DocAnalyzer.rowNumber - 2;
+        int rowIndex = 0;
         HSSFRow row = currentSheet.getRow(rowIndex);
         int endColumnNumber = 0;
         while (true) { // check cell contents of row above column number

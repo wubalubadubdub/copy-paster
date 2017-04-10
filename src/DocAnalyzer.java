@@ -147,7 +147,7 @@ public class DocAnalyzer {
         String firstMatch = first.group(1); // group 1 refers to the digit captured with () used in the ROW_REGEX
         String secondMatch = second.group(1);
 
-        if (Integer.parseInt(firstMatch) == Integer.parseInt(secondMatch)) { // e.g. A4(0), B4(0); Z3(0), AA3(0); AC4(1), AD4(1)
+        if (Integer.parseInt(firstMatch) == Integer.parseInt(secondMatch)) { // e.g. A4(0), B4(0), AC4(1), AD4(1)
             rowNumber = Integer.parseInt(firstMatch) - 1; // using the same row number in the document as in the template
             // makes it easier to do the hand-in copy of the doc file in many cases (only need to delete the (#) part
             return true;
