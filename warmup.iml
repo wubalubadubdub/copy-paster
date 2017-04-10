@@ -8,5 +8,6 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="org.apache.poi:poi-scratchpad:3.15" level="project" />
+    <orderEntry type="library" name="org.apache.poi:poi-ooxml:3.15" level="project" />
   </component>
 </module>

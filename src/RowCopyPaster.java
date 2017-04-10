@@ -1,8 +1,8 @@
-import org.apache.poi.hssf.usermodel.*;
-import org.apache.poi.hssf.util.HSSFColor;
+
 import org.apache.poi.hwpf.usermodel.CharacterRun;
 import org.apache.poi.hwpf.usermodel.Paragraph;
 import org.apache.poi.hwpf.usermodel.Range;
+import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.ss.usermodel.*;
 
 import java.io.FileInputStream;
@@ -16,37 +16,42 @@ import java.util.regex.Pattern;
 
 /**
  * Created by bearg on 1/27/2017.
- * Answers go horizontally in row template
+ * Answers go horizontally in row workbook
  */
 public class RowCopyPaster {
 
-    private static HSSFWorkbook template;
+    private static Workbook workbook;
     private static FileOutputStream outputStream;
+    private static FileInputStream inputStream;
     private static Set<Integer> sheetNumbersUsed;
+
 
    static void run()
 
     {
 
-        final String excelDocumentName = DocAnalyzer.PATH_PREFIX + DocAnalyzer.wordDocumentName.replace(".doc", ".xls");
+        final String excelDocumentName = DocAnalyzer.PATH_PREFIX + DocAnalyzer.wordDocumentName.replace(".doc", ".xlsx");
         try {
-            template = readFile(excelDocumentName);
+            // workbook = readFile(excelDocumentName);
+            //inputStream = new FileInputStream(excelDocumentName);
+            //workbook = WorkbookFactory.create(inputStream);
+            workbook = readFile(excelDocumentName);
             outputStream = new FileOutputStream(excelDocumentName);
-            System.out.println("Number of cell styles is " + template.getNumCellStyles());
+            System.out.println("Number of cell styles is " + workbook.getNumCellStyles());
             paragraphLoop();
             putXsInBlankCells();
             tearDown();
 
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
     }
 
     private static void tearDown() throws IOException {
-        template.write(outputStream);
+        workbook.write(outputStream);
         outputStream.close();
-        template.close();
+        workbook.close();
     }
 
 
@@ -72,23 +77,23 @@ public class RowCopyPaster {
 
 
             int columnNumber = getColumnNumberFromParagraph(plainTextParagraph);
-            HSSFRichTextString rts = getBoldParagraph(currentParagraph);
+            RichTextString rts = getBoldParagraph(currentParagraph);
 
             int sheetNumber = getSheetNumberFromParagraph(plainTextParagraph);
             sheetNumbersUsed.add(sheetNumber);
 
             // must call before stripping identifier
-            HSSFSheet currentSheet;
+            Sheet currentSheet;
             if (DocAnalyzer.defaultRowAndSheetSet) {
-                currentSheet = template.getSheetAt(0);
+                currentSheet = workbook.getSheetAt(0);
             }
 
             else {
-                currentSheet = template.getSheetAt(sheetNumber);
+                currentSheet = workbook.getSheetAt(sheetNumber);
             }
 
 
-            HSSFCell currentCell = getCell(currentSheet, DocAnalyzer.rowNumber, columnNumber);
+            Cell currentCell = getCell(currentSheet, DocAnalyzer.rowNumber, columnNumber);
             pasteTextIntoCell(currentCell, rts);
             loopCounter++;
             System.out.println("Text pasted into cell " + loopCounter + " times");
@@ -130,9 +135,9 @@ public class RowCopyPaster {
 
     }
 
-    private static HSSFFont getBold() {
-        HSSFCellStyle cellStyle = template.createCellStyle();
-        HSSFFont bold = template.createFont();
+    private static Font getBold() {
+        CellStyle cellStyle = workbook.createCellStyle();
+        Font bold = workbook.createFont();
         bold.setBold(true);
         bold.setFontName(DocAnalyzer.fontName);
         bold.setFontHeightInPoints((short) DocAnalyzer.fontSize);
@@ -141,21 +146,22 @@ public class RowCopyPaster {
 
     }
 
-    private static HSSFFont getFontWithCorrectNameAndSize() {
-       HSSFFont font = template.createFont();
+    private static Font getFontWithCorrectNameAndSize() {
+       Font font = workbook.createFont();
        font.setFontName(DocAnalyzer.fontName);
        font.setFontHeightInPoints((short) DocAnalyzer.fontSize);
        return font;
     }
 
-    private static HSSFRichTextString getBoldParagraph(Paragraph currentParagraph) {
-
+    private static RichTextString getBoldParagraph(Paragraph currentParagraph) {
+        CreationHelper helper = workbook.getCreationHelper();
         if (currentParagraph.text().equals("\r")) {
-            return new HSSFRichTextString(currentParagraph.text());
+
+            return helper.createRichTextString(currentParagraph.text());
         }
 
         String plainTextNoIdentifier = stripIdentifier(currentParagraph.text()).trim();
-        HSSFRichTextString rts = new HSSFRichTextString(plainTextNoIdentifier);
+        RichTextString rts = helper.createRichTextString(plainTextNoIdentifier);
         ArrayList<Integer> indicesUsed = new ArrayList<>();
 
 
@@ -232,15 +238,15 @@ public class RowCopyPaster {
     }
 
 
-    private static void pasteTextIntoCell(HSSFCell cell, HSSFRichTextString rts){
+    private static void pasteTextIntoCell(Cell cell, RichTextString rts){
 
         cell.setCellValue(rts);
         setCellStyle(cell);
     }
 
-    private static void setCellStyle(HSSFCell cell) {
+    private static void setCellStyle(Cell cell) {
 
-        CellStyle style = template.createCellStyle();
+        CellStyle style = workbook.createCellStyle();
 
         // default alignment is top left, but this can be manually given as argument TL
         if (DocAnalyzer.cellAlignment == null) {
@@ -308,14 +314,14 @@ public class RowCopyPaster {
 
     }
 
-    private static int getLastFilledColumnNumber(HSSFSheet currentSheet) {
+    private static int getLastFilledColumnNumber(Sheet currentSheet) {
 
         // want to put Xs in cell range from first column, 0, in rowNumber until the cell directly
         // above is blank, but only if those cells are blank after pasting in text of all paragraphs
 
         // get the row above the one we're pasting text into
         int rowIndex = 0;
-        HSSFRow row = currentSheet.getRow(rowIndex);
+        Row row = currentSheet.getRow(rowIndex);
         int endColumnNumber = 0;
         while (true) { // check cell contents of row above column number
             // check if the cell above is empty or null
@@ -336,11 +342,11 @@ public class RowCopyPaster {
     private static void putXsInBlankCells() {
 
         for (Integer sheetNumber : sheetNumbersUsed) {
-            HSSFSheet currentSheet = template.getSheetAt(sheetNumber);
-            HSSFRow row = currentSheet.getRow(DocAnalyzer.rowNumber);
+            Sheet currentSheet = workbook.getSheetAt(sheetNumber);
+            Row row = currentSheet.getRow(DocAnalyzer.rowNumber);
             int endColumnNumber = getLastFilledColumnNumber(currentSheet);
             for (int column = 0; column < endColumnNumber; column++) {
-                HSSFCell cell = row.getCell(column, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                Cell cell = row.getCell(column, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                 if (cell.getStringCellValue().equals("")) { // if the cell is empty
                     cell.setCellValue("X");
                     setCellStyle(cell);
@@ -367,13 +373,13 @@ public class RowCopyPaster {
     }
 
 
-    private static HSSFCell getCell(HSSFSheet sheet, int rowNumber, int columnNumber) {
+    private static Cell getCell(Sheet sheet, int rowNumber, int columnNumber) {
         System.out.println("Getting cell at row " + rowNumber + " , column " + columnNumber);
-        HSSFRow row = sheet.getRow(rowNumber);
+        Row row = sheet.getRow(rowNumber);
         if (row == null) {
             throw new IllegalStateException("Trying to get the row in this sheet returned null." +
                     " Is the entire sheet blank? If so, type some text into any cell in that row and " +
-                    "run the program again. Also check to see if the first couple columns/rows of the template" +
+                    "run the program again. Also check to see if the first couple columns/rows of the workbook" +
                     " are blank, and if so, put a placeholder letter in them before running program.");
         }
         return row.getCell(columnNumber, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
@@ -382,15 +388,17 @@ public class RowCopyPaster {
     }
 
 
-    private static HSSFWorkbook readFile(String filename) throws IOException {
+    private static Workbook readFile(String filename) throws IOException {
         FileInputStream fis = new FileInputStream(filename);
         try {
-            return new HSSFWorkbook(fis);
-        }
-        finally {
+            return WorkbookFactory.create(fis);
+        } catch (InvalidFormatException e) {
+            e.printStackTrace();
+        } finally {
             fis.close();
         }
 
+        return null;
     }
 
 }
