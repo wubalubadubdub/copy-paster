@@ -41,8 +41,16 @@ public class DocAnalyzer {
             System.exit(0);
         }
 
+        else if (args.length == 1) {
+            if (!args[0].endsWith(".doc")) {
+                System.out.println("Must provide the Word document filename ending with .doc as an argument");
+                System.exit(0);
+            }
 
-        if (args.length == 2 && args[1].equals("D")) { // default row+sheet are given
+        }
+
+
+        else if (args.length == 2 && args[1].equals("D")) { // default row+sheet are given
             defaultRowAndSheetSet = true;
         }
 
