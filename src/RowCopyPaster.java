@@ -22,7 +22,6 @@ public class RowCopyPaster {
 
     private static Workbook workbook;
     private static FileOutputStream outputStream;
-    private static FileInputStream inputStream;
     private static Set<Integer> sheetNumbersUsed;
 
 
@@ -30,7 +29,7 @@ public class RowCopyPaster {
 
     {
 
-        final String excelDocumentName = DocAnalyzer.PATH_PREFIX + DocAnalyzer.wordDocumentName.replace(".doc", ".xlsx");
+        final String excelDocumentName = DocAnalyzer.PATH_PREFIX + DocAnalyzer.wordDocumentName.replace(".doc", ".xlsx"); // save as .xls file after program has run if needed
         try {
             workbook = readFile(excelDocumentName);
             outputStream = new FileOutputStream(excelDocumentName);
