@@ -338,7 +338,7 @@ public class ColumnCopyPaster {
     private static int getSheetNumberFromParagraph(String plainTextParagraph) {
 
         Pattern pattern = Pattern.compile(DocAnalyzer.SHEET_REGEX);
-        String identifier = plainTextParagraph.substring(0, 6).trim(); // e.g. AB4(0):
+        String identifier = plainTextParagraph.substring(0, 7).trim(); // e.g. AB4(0):
         Matcher identifierMatcher = pattern.matcher(identifier);
         if (!identifierMatcher.find()) {
             throw new IllegalStateException("Could not get sheet number from paragraph. The regex was not matched.");
